@@ -1,5 +1,5 @@
 I created this repo to hold code for a Test Automation error handling utility that utilizes AI both in creating it and to perform the analysis.  
-This was created for a java-selenium stack
+This was created for a java-selenium stack and is intended to be compiled as a library for projects to call, but for now will be tested as if it were part of a real project.
 
 THIS CODE IS NOT TESTED NOR IS IT RELEASE-READY
 
