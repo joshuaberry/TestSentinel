@@ -4,6 +4,7 @@ import com.testsentinel.core.TestSentinelConfig;
 import com.testsentinel.model.ConditionEvent;
 import com.testsentinel.model.ConditionType;
 import org.openqa.selenium.*;
+import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.logging.LogEntry;
 import org.openqa.selenium.logging.LogType;
 import org.slf4j.Logger;
