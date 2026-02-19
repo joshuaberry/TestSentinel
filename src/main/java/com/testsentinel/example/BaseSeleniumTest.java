@@ -4,6 +4,7 @@ import com.testsentinel.core.ActionPlanAdvisor;
 import com.testsentinel.core.TestSentinelClient;
 import com.testsentinel.core.TestSentinelConfig;
 import com.testsentinel.interceptor.TestSentinelListener;
+import com.testsentinel.model.ConditionEvent;
 import com.testsentinel.model.InsightResponse;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
@@ -23,35 +24,57 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Base test class demonstrating Phase 1 and Phase 2 TestSentinel integration
- * with TestNG + Selenium.
+ * Base test class for TestNG + Selenium suites using TestSentinel.
  *
- * Phase 2 adds: ActionPlanAdvisor usage, recommendation logging, report enrichment.
+ * Covers all features through the knowledge base update:
+ *   Phase 1  — root cause analysis via Claude API
+ *   Phase 2  — action plan generation
+ *   Continue — NAVIGATED_PAST / STATE_ALREADY_SATISFIED detection
+ *   KB       — local resolution from known-conditions.json (zero API cost)
+ *
+ * ## Resolution priority in every analysis call:
+ *   1. Knowledge base match  → sub-ms, 0 tokens, confidence 1.0
+ *   2. Claude API call       → 3-8s, ~1500-3500 tokens
+ *
+ * ## Configuration (environment variables):
+ *   ANTHROPIC_API_KEY                 — required
+ *   TESTSENTINEL_KNOWLEDGE_BASE_PATH  — path to known-conditions.json (optional)
+ *   TESTSENTINEL_PHASE2_ENABLED       — true to enable action plans (default: false)
+ *   TESTSENTINEL_MAX_RISK_LEVEL       — LOW | MEDIUM | HIGH (default: LOW)
  */
 public class BaseSeleniumTest {
 
     protected static final Logger log = LoggerFactory.getLogger(BaseSeleniumTest.class);
 
+    // Shared across suite — all fields are thread-safe by design
     protected static TestSentinelClient sentinel;
-    protected static ActionPlanAdvisor advisor;  // Phase 2 addition
+    protected static ActionPlanAdvisor  advisor;
 
-    private static final ThreadLocal<WebDriver> driverHolder = new ThreadLocal<>();
-    private static final ThreadLocal<TestSentinelListener> listenerHolder = new ThreadLocal<>();
-    private static final ThreadLocal<List<String>> stepHistoryHolder = new ThreadLocal<>();
+    // Per-thread state for parallel execution
+    private static final ThreadLocal<WebDriver>             driverHolder      = new ThreadLocal<>();
+    private static final ThreadLocal<TestSentinelListener>  listenerHolder    = new ThreadLocal<>();
+    private static final ThreadLocal<List<String>>          stepHistoryHolder = new ThreadLocal<>();
+
+    // ── Suite Lifecycle ───────────────────────────────────────────────────────
 
     @BeforeSuite
     public void initTestSentinel() {
         TestSentinelConfig config = TestSentinelConfig.fromEnvironment();
         sentinel = new TestSentinelClient(config);
-        advisor = new ActionPlanAdvisor(config);   // Phase 2 addition
-        log.info("TestSentinel Phase 2 initialized — phase2={}, maxRisk={}",
-            config.isPhase2Enabled(), config.getMaxRiskLevel());
+        advisor  = new ActionPlanAdvisor(config);
+        log.info("TestSentinel initialized — phase2={}, maxRisk={}, knowledgeBase={} patterns",
+            config.isPhase2Enabled(),
+            config.getMaxRiskLevel(),
+            sentinel.knowledgeBaseSize());
     }
 
     @AfterSuite
     public void tearDownSentinel() {
-        log.info("TestSentinel suite complete");
+        log.info("TestSentinel suite complete — knowledge base has {} active patterns",
+            sentinel.knowledgeBaseSize());
     }
+
+    // ── Test Lifecycle ────────────────────────────────────────────────────────
 
     @BeforeMethod
     public void setUpDriver(Method method) {
@@ -62,8 +85,9 @@ public class BaseSeleniumTest {
         WebDriver rawDriver = new ChromeDriver(options);
         rawDriver.manage().window().maximize();
 
-        String testName = method.getName();
+        String testName  = method.getName();
         String suiteName = method.getDeclaringClass().getSimpleName();
+
         TestSentinelListener listener = new TestSentinelListener(sentinel, testName, suiteName);
         WebDriver decoratedDriver = new EventFiringDecorator<>(listener).decorate(rawDriver);
 
@@ -80,13 +104,16 @@ public class BaseSeleniumTest {
             if (insight != null) {
 
                 if (insight.isContinuable()) {
-                    // TestSentinel determined there was no actual problem —
-                    // the test intercepted a condition but state is valid.
+                    // TestSentinel determined there is no actual problem — state is valid.
                     // Record as informational only; do NOT treat as failure.
-                    log.info("TestSentinel: CONTINUE signal on test '{}' — {}",
-                        result.getName(), insight.getRootCause());
-                    result.setAttribute("testsentinel_outcome", "CONTINUE");
-                    result.setAttribute("testsentinel_root_cause", insight.getRootCause());
+                    String source = insight.isLocalResolution()
+                        ? "[LOCAL:" + insight.getResolvedFromPattern() + "]"
+                        : "[Claude API]";
+                    log.info("TestSentinel: CONTINUE {} on test '{}' — {}",
+                        source, result.getName(), insight.getRootCause());
+                    result.setAttribute("testsentinel_outcome",      "CONTINUE");
+                    result.setAttribute("testsentinel_source",       source);
+                    result.setAttribute("testsentinel_root_cause",   insight.getRootCause());
                     if (insight.getContinueContext() != null) {
                         result.setAttribute("testsentinel_observed_state",
                             insight.getContinueContext().getObservedState());
@@ -97,10 +124,16 @@ public class BaseSeleniumTest {
                     }
 
                 } else if (result.getStatus() == ITestResult.FAILURE) {
-                    // Standard failure path — attach insight and action plan
-                    result.setAttribute("testsentinel_insight", insight);
-                    result.setAttribute("testsentinel_root_cause", insight.getRootCause());
-                    result.setAttribute("testsentinel_category", insight.getConditionCategory());
+                    // Problem path — attach all available insight to the test result
+                    String source = insight.isLocalResolution()
+                        ? "[LOCAL:" + insight.getResolvedFromPattern() + "]"
+                        : "[Claude API]";
+                    result.setAttribute("testsentinel_insight",      insight);
+                    result.setAttribute("testsentinel_source",       source);
+                    result.setAttribute("testsentinel_root_cause",   insight.getRootCause());
+                    result.setAttribute("testsentinel_category",     insight.getConditionCategory());
+                    result.setAttribute("testsentinel_tokens",       insight.getAnalysisTokens());
+                    result.setAttribute("testsentinel_latency_ms",   insight.getAnalysisLatencyMs());
                     if (insight.hasActionPlan()) {
                         result.setAttribute("testsentinel_plan_summary",
                             insight.getActionPlan().getPlanSummary());
@@ -122,49 +155,30 @@ public class BaseSeleniumTest {
 
     // ── Accessors ─────────────────────────────────────────────────────────────
 
-    protected WebDriver getDriver() { return driverHolder.get(); }
-    protected List<String> getSteps() { return stepHistoryHolder.get(); }
+    protected WebDriver      getDriver() { return driverHolder.get(); }
+    protected List<String>   getSteps()  { return stepHistoryHolder.get(); }
 
+    /** Records a named step for context enrichment. Call before significant actions. */
     protected void recordStep(String description) {
         List<String> steps = stepHistoryHolder.get();
         if (steps != null) steps.add(description);
     }
 
-    // ── Explicit integration helper ───────────────────────────────────────────
+    // ── Analysis Helpers ──────────────────────────────────────────────────────
 
     /**
-     * Analyzes an exception or condition, logs the full insight, and returns the InsightResponse.
-     * Handles all three possible outcomes:
+     * Analyzes a caught exception. Checks knowledge base first; calls Claude only
+     * if no local pattern matches.
      *
      * <pre>
-     *   // CONTINUE outcome — logged in a test's wrong-page detection:
-     *   String expectedUrl = "/checkout";
-     *   if (!driver.getCurrentUrl().contains(expectedUrl)) {
-     *       InsightResponse insight = analyzeAndAdvise(
-     *           driver.getCurrentUrl(), expectedUrl
-     *       );
-     *       if (insight.isContinuable()) {
-     *           // Already past login — proceed from current position
-     *           log.info("Skipping login step: {}", insight.getRootCause());
-     *           return; // or jump to next step
-     *       }
-     *   }
-     *
-     *   // PROBLEM outcome — logged in a catch block:
      *   try {
-     *       recordStep("Click submit button");
+     *       recordStep("Click submit");
      *       driver.findElement(By.id("submit")).click();
      *   } catch (NoSuchElementException e) {
      *       InsightResponse insight = analyzeAndAdvise(e);
-     *       if (insight.isContinuable()) {
-     *           return; // No problem — form already submitted
-     *       }
-     *       if (insight.isTransient()) {
-     *           Thread.sleep(2000); // retry...
-     *       } else {
-     *           throw new RuntimeException(
-     *               insight.getRootCause() + advisor.buildReportSummary(insight), e);
-     *       }
+     *       if (insight.isContinuable())  return;        // already submitted
+     *       if (insight.isTransient())    retryAction();
+     *       else throw new RuntimeException(insight.getRootCause(), e);
      *   }
      * </pre>
      */
@@ -174,19 +188,26 @@ public class BaseSeleniumTest {
             Map.of("testName", "current test", "framework", "TestNG")
         );
         sentinel.logInsight(insight);
-        if (!insight.isContinuable()) {
-            advisor.logRecommendations(insight);
-        }
+        if (!insight.isContinuable()) advisor.logRecommendations(insight);
         return insight;
     }
 
     /**
-     * Analyzes a wrong-page or unexpected-state condition (no exception required).
-     * Use this when the test detects the wrong URL or unexpected application state
-     * proactively — before an exception is thrown.
+     * Analyzes a wrong-page or unexpected-state condition without an exception.
+     * Use when the test detects an unexpected URL proactively.
      *
-     * Returns an InsightResponse where isContinuable() may be true if the condition
-     * turns out to be NAVIGATED_PAST or STATE_ALREADY_SATISFIED.
+     * Returns isContinuable()=true for NAVIGATED_PAST or STATE_ALREADY_SATISFIED.
+     *
+     * <pre>
+     *   if (!driver.getCurrentUrl().contains("/checkout")) {
+     *       InsightResponse insight = analyzeAndAdvise(driver.getCurrentUrl(), "/checkout");
+     *       if (insight.isContinuable()) {
+     *           log.info("Already past checkout — continuing: {}", insight.getRootCause());
+     *           return;
+     *       }
+     *       throw new RuntimeException("Navigation failed: " + insight.getRootCause());
+     *   }
+     * </pre>
      */
     protected InsightResponse analyzeAndAdvise(String actualUrl, String expectedUrl) {
         InsightResponse insight = sentinel.analyzeWrongPage(
@@ -194,190 +215,45 @@ public class BaseSeleniumTest {
             Map.of("testName", "current test", "actualUrl", actualUrl)
         );
         sentinel.logInsight(insight);
-        if (!insight.isContinuable()) {
-            advisor.logRecommendations(insight);
-        }
+        if (!insight.isContinuable()) advisor.logRecommendations(insight);
         return insight;
     }
-}
 
-/**
- * Base test class demonstrating TestSentinel integration with TestNG + Selenium.
- *
- * Integration Strategy Used Here:
- * ─────────────────────────────────────────────────────────────────────────────
- * OPTION A (Zero-touch via EventFiringDecorator):
- *   - TestSentinelListener wraps the driver via EventFiringDecorator
- *   - All Selenium exceptions are automatically intercepted and analyzed
- *   - No changes needed in individual test methods
- *   - Access the last insight via listener.getLastInsight() in @AfterMethod
- *
- * OPTION B (Explicit in test method):
- *   - Call sentinel.analyzeException(driver, e, steps, meta) in catch blocks
- *   - More control; better for targeted analysis in specific test methods
- *
- * Both options are demonstrated below.
- * ─────────────────────────────────────────────────────────────────────────────
- */
-public class BaseSeleniumTest {
-
-    protected static final Logger log = LoggerFactory.getLogger(BaseSeleniumTest.class);
-
-    // Shared across suite — thread-safe
-    protected static TestSentinelClient sentinel;
-
-    // Per-thread (for parallel execution)
-    private static final ThreadLocal<WebDriver> driverHolder = new ThreadLocal<>();
-    private static final ThreadLocal<TestSentinelListener> listenerHolder = new ThreadLocal<>();
-    private static final ThreadLocal<List<String>> stepHistoryHolder = new ThreadLocal<>();
-
-    // ── Suite Setup ───────────────────────────────────────────────────────────
-
-    @BeforeSuite
-    public void initTestSentinel() {
-        // Initialize from environment variables
-        // Set ANTHROPIC_API_KEY in your environment or CI/CD secrets
-        sentinel = new TestSentinelClient(TestSentinelConfig.fromEnvironment());
-        log.info("TestSentinel initialized for suite");
-    }
-
-    @AfterSuite
-    public void tearDownSentinel() {
-        log.info("TestSentinel suite complete");
-    }
-
-    // ── Test Setup ────────────────────────────────────────────────────────────
-
-    @BeforeMethod
-    public void setUpDriver(Method method) {
-        ChromeOptions options = new ChromeOptions();
-        options.addArguments("--headless=new", "--no-sandbox", "--disable-dev-shm-usage");
-        // Enable browser console log capture
-        options.setCapability("goog:loggingPrefs", Map.of("browser", "ALL"));
-
-        WebDriver rawDriver = new ChromeDriver(options);
-        rawDriver.manage().window().maximize();
-
-        // OPTION A: Wrap with EventFiringDecorator for automatic interception
-        String testName = method.getName();
-        String suiteName = method.getDeclaringClass().getSimpleName();
-
-        TestSentinelListener listener = new TestSentinelListener(sentinel, testName, suiteName);
-        WebDriver decoratedDriver = new EventFiringDecorator<>(listener).decorate(rawDriver);
-
-        driverHolder.set(decoratedDriver);
-        listenerHolder.set(listener);
-        stepHistoryHolder.set(new ArrayList<>());
-
-        log.info("Driver initialized for test: {}", testName);
-    }
-
-    @AfterMethod
-    public void tearDown(ITestResult result) {
-        // Attach insight to test result if available (Option A auto-interception)
-        TestSentinelListener listener = listenerHolder.get();
-        if (listener != null) {
-            InsightResponse insight = listener.getLastInsight();
-            if (insight != null && result.getStatus() == ITestResult.FAILURE) {
-                // Attach the insight as a TestNG attribute — visible in reports
-                result.setAttribute("testsentinel_insight", insight);
-                result.setAttribute("testsentinel_root_cause", insight.getRootCause());
-                result.setAttribute("testsentinel_category", insight.getConditionCategory());
-
-                log.info("TestSentinel insight attached to failed test: {}",
-                    result.getName());
-            }
-        }
-
-        WebDriver driver = driverHolder.get();
-        if (driver != null) {
-            try { driver.quit(); } catch (Exception ignored) {}
-            driverHolder.remove();
-        }
-        listenerHolder.remove();
-        stepHistoryHolder.remove();
-    }
-
-    // ── Accessor Methods for Subclasses ──────────────────────────────────────
-
-    protected WebDriver getDriver() { return driverHolder.get(); }
-    protected List<String> getSteps() { return stepHistoryHolder.get(); }
+    // ── Knowledge Base Helpers ────────────────────────────────────────────────
 
     /**
-     * Manually record a test step for context enrichment.
-     * Call this before significant actions for richer analysis context.
-     */
-    protected void recordStep(String description) {
-        List<String> steps = stepHistoryHolder.get();
-        if (steps != null) {
-            steps.add(description);
-            log.debug("Step recorded: {}", description);
-        }
-    }
-
-    // ── OPTION B: Explicit Analysis Helper ───────────────────────────────────
-
-    /**
-     * OPTION B integration: Call this in your catch block for explicit,
-     * targeted analysis with full step context.
+     * Promotes a confirmed Claude resolution to the knowledge base so future
+     * occurrences of the same pattern resolve locally with zero API cost.
+     *
+     * Call this after confirming that a Claude-produced insight was correct:
      *
      * <pre>
-     *   try {
-     *       recordStep("Click submit button");
-     *       driver.findElement(By.id("submit")).click();
-     *   } catch (NoSuchElementException e) {
-     *       InsightResponse insight = analyzeAndLog(e);
-     *       if (insight.isTransient()) {
-     *           Thread.sleep(2000);
-     *           // retry...
-     *       } else {
-     *           throw e;
-     *       }
-     *   }
+     *   InsightResponse insight = analyzeAndAdvise(e);
+     *   // ... confirm the resolution worked ...
+     *   promoteToKnownPattern(lastEvent, insight, "cookie-banner-checkout", "j.smith");
+     *   // Next occurrence: resolved in 0ms, 0 tokens
      * </pre>
+     *
+     * The ConditionEvent is available from the listener after analysis:
+     *   ConditionEvent event = listenerHolder.get().getLastEvent();  // add getLastEvent() to listener
+     *
+     * Or build one manually for proactive registration:
+     *   ConditionEvent event = ConditionEvent.builder()
+     *       .conditionType(ConditionType.LOCATOR_NOT_FOUND)
+     *       .message("Cookie banner blocks interaction")
+     *       .currentUrl(driver.getCurrentUrl())
+     *       .build();
      */
-    protected InsightResponse analyzeAndLog(Exception e) {
-        InsightResponse insight = sentinel.analyzeException(
-            getDriver(),
-            e,
-            getSteps(),
-            Map.of("testName", "current test", "framework", "TestNG")
-        );
-        sentinel.logInsight(insight);
-        return insight;
+    protected void promoteToKnownPattern(ConditionEvent event, InsightResponse insight,
+                                          String patternId, String addedBy) {
+        sentinel.recordResolution(event, insight, patternId, addedBy);
     }
 
-    // ── Example Test Methods ──────────────────────────────────────────────────
-
     /**
-     * Example: OPTION A — Zero-touch. The listener auto-intercepts the exception.
-     * TestSentinel analysis appears in logs automatically.
-     * Access the insight in @AfterMethod via listener.getLastInsight().
+     * Reloads the knowledge base from disk after hand-editing known-conditions.json.
+     * Call from a @BeforeClass or @BeforeSuite hook when editing patterns between runs.
      */
-    // @Test
-    // public void exampleOptionA() {
-    //     getDriver().get("https://your-app.com/checkout");
-    //     // If this throws NoSuchElementException, listener auto-analyzes it
-    //     getDriver().findElement(By.id("checkout-button")).click();
-    // }
-
-    /**
-     * Example: OPTION B — Explicit analysis with step context.
-     */
-    // @Test
-    // public void exampleOptionB() {
-    //     recordStep("Navigate to checkout page");
-    //     getDriver().get("https://your-app.com/checkout");
-    //
-    //     recordStep("Click checkout button");
-    //     try {
-    //         getDriver().findElement(By.id("checkout-button")).click();
-    //     } catch (NoSuchElementException e) {
-    //         InsightResponse insight = analyzeAndLog(e);
-    //         // insight.getConditionCategory() -> OVERLAY (if cookie modal is blocking)
-    //         // insight.isTransient() -> true
-    //         // insight.getSuggestedTestOutcome() -> "RETRY"
-    //         softAssert.fail("Element not found — see TestSentinel insight: " + insight.getRootCause());
-    //     }
-    // }
+    protected void reloadKnowledgeBase() {
+        sentinel.reloadKnowledgeBase();
+    }
 }

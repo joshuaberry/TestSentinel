@@ -2,6 +2,9 @@ package com.testsentinel.core;
 
 import com.testsentinel.model.ActionStep;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 /**
  * Configuration for the TestSentinel client.
  *
@@ -17,6 +20,7 @@ import com.testsentinel.model.ActionStep;
  *   TESTSENTINEL_DOM_MAX_CHARS - Max DOM snapshot length (default: 15000 chars)
  *   TESTSENTINEL_PHASE2_ENABLED - Enable Phase 2 action plan generation (default: false)
  *   TESTSENTINEL_MAX_RISK_LEVEL - Max risk level for recommendations: LOW|MEDIUM|HIGH (default: LOW)
+ *   TESTSENTINEL_KNOWLEDGE_BASE_PATH - Path to known-conditions.json (optional; omit to disable local resolution)
  */
 public class TestSentinelConfig {
 
@@ -36,6 +40,7 @@ public class TestSentinelConfig {
     private final boolean logPrompts;    // Log full prompts to SLF4J DEBUG for debugging
     private final boolean phase2Enabled; // Enable Phase 2 action plan generation
     private final ActionStep.RiskLevel maxRiskLevel; // Maximum risk level for recommendations
+    private final Path knowledgeBasePath; // Path to known-conditions.json; null = KB disabled
 
     private TestSentinelConfig(Builder b) {
         this.apiKey = b.apiKey;
@@ -49,6 +54,7 @@ public class TestSentinelConfig {
         this.logPrompts = b.logPrompts;
         this.phase2Enabled = b.phase2Enabled;
         this.maxRiskLevel = b.maxRiskLevel;
+        this.knowledgeBasePath = b.knowledgeBasePath;
     }
 
     // ── Static factory: load from environment variables ───────────────────────
@@ -73,6 +79,7 @@ public class TestSentinelConfig {
             .logPrompts(boolEnvOrDefault("TESTSENTINEL_LOG_PROMPTS", false))
             .phase2Enabled(boolEnvOrDefault("TESTSENTINEL_PHASE2_ENABLED", false))
             .maxRiskLevel(riskLevelEnvOrDefault("TESTSENTINEL_MAX_RISK_LEVEL", ActionStep.RiskLevel.LOW))
+            .knowledgeBasePath(pathEnvOrNull("TESTSENTINEL_KNOWLEDGE_BASE_PATH"))
             .build();
     }
 
@@ -89,6 +96,8 @@ public class TestSentinelConfig {
     public boolean isLogPrompts() { return logPrompts; }
     public boolean isPhase2Enabled() { return phase2Enabled; }
     public ActionStep.RiskLevel getMaxRiskLevel() { return maxRiskLevel; }
+    public Path getKnowledgeBasePath() { return knowledgeBasePath; }
+    public boolean isKnowledgeBaseEnabled() { return knowledgeBasePath != null; }
 
     // ── Builder ───────────────────────────────────────────────────────────────
 
@@ -106,6 +115,7 @@ public class TestSentinelConfig {
         private boolean logPrompts = false;
         private boolean phase2Enabled = false;
         private ActionStep.RiskLevel maxRiskLevel = ActionStep.RiskLevel.LOW;
+        private Path knowledgeBasePath = null;
 
         public Builder apiKey(String apiKey) { this.apiKey = apiKey; return this; }
         public Builder model(String model) { this.model = model; return this; }
@@ -118,6 +128,11 @@ public class TestSentinelConfig {
         public Builder logPrompts(boolean b) { this.logPrompts = b; return this; }
         public Builder phase2Enabled(boolean b) { this.phase2Enabled = b; return this; }
         public Builder maxRiskLevel(ActionStep.RiskLevel level) { this.maxRiskLevel = level; return this; }
+        public Builder knowledgeBasePath(Path path) { this.knowledgeBasePath = path; return this; }
+        public Builder knowledgeBasePath(String path) {
+            this.knowledgeBasePath = (path != null && !path.isBlank()) ? Paths.get(path) : null;
+            return this;
+        }
 
         public TestSentinelConfig build() {
             if (apiKey == null || apiKey.isBlank()) {
@@ -154,5 +169,10 @@ public class TestSentinelConfig {
         if (val == null || val.isBlank()) return defaultValue;
         try { return ActionStep.RiskLevel.valueOf(val.trim().toUpperCase()); }
         catch (IllegalArgumentException e) { return defaultValue; }
+    }
+
+    private static Path pathEnvOrNull(String key) {
+        String val = System.getenv(key);
+        return (val != null && !val.isBlank()) ? Paths.get(val.trim()) : null;
     }
 }

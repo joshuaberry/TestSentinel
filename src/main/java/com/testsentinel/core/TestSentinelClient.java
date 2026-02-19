@@ -4,42 +4,56 @@ import com.testsentinel.api.ClaudeApiGateway;
 import com.testsentinel.model.ConditionEvent;
 import com.testsentinel.model.ConditionType;
 import com.testsentinel.model.InsightResponse;
+import com.testsentinel.model.KnownCondition;
 import com.testsentinel.prompt.PromptEngine;
 import com.testsentinel.util.ContextCollector;
 import org.openqa.selenium.WebDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * TestSentinelClient — the primary integration point for test automation frameworks.
  *
+ * ## Resolution Priority
+ * Every call to analyzeEvent() follows this decision tree:
+ *
+ *   1. Knowledge Base check (local, 0ms, 0 tokens)
+ *      If a KnownCondition pattern matches, return a locally-built InsightResponse immediately.
+ *      No API call is made. Confidence is 1.0. latencyMs is sub-millisecond.
+ *
+ *   2. Claude API call (network, 3-8s, ~1500-3500 tokens)
+ *      If no local match, build ConditionEvent, call Claude, parse response.
+ *
+ * ## Training the Knowledge Base
+ * When Claude produces a resolution that an engineer confirms as correct, call:
+ *   sentinel.recordResolution(event, insight, "pattern-id", "engineer-name")
+ *
+ * This writes a KnownCondition to the JSON file. The next occurrence of the same
+ * pattern resolves locally — permanently, for free.
+ *
  * ## Quick Start
  * <pre>
- *   // 1. Initialize once per test suite (or per test class)
- *   TestSentinelClient sentinel = new TestSentinelClient(
- *       TestSentinelConfig.fromEnvironment()
- *   );
+ *   TestSentinelConfig config = TestSentinelConfig.fromEnvironment();
+ *   // Set TESTSENTINEL_KNOWLEDGE_BASE_PATH=/path/to/known-conditions.json to enable KB
  *
- *   // 2. In your test, wrap risky operations:
+ *   TestSentinelClient sentinel = new TestSentinelClient(config);
+ *
  *   try {
  *       driver.findElement(By.cssSelector(".submit-btn")).click();
  *   } catch (NoSuchElementException e) {
- *       InsightResponse insight = sentinel.analyzeException(driver, e, stepHistory, testMeta);
- *       // Attach insight to test report, decide retry/fail based on insight
- *       reporter.attachInsight(insight);
- *       if (insight.isTransient()) {
- *           // retry logic
- *       } else {
- *           throw e; // genuine failure
- *       }
+ *       InsightResponse insight = sentinel.analyzeException(driver, e, steps, meta);
+ *       // insight.isLocalResolution() == true if resolved from KB
+ *       // insight.isLocalResolution() == false if Claude was called
  *   }
  * </pre>
  *
- * The client is thread-safe and designed to be shared across parallel test threads.
+ * Thread-safe. Designed to be shared across parallel test threads.
  */
 public class TestSentinelClient {
 
@@ -49,38 +63,39 @@ public class TestSentinelClient {
     private final ContextCollector contextCollector;
     private final ClaudeApiGateway apiGateway;
     private final PromptEngine promptEngine;
+    private final KnownConditionRepository knowledgeBase; // null when KB not configured
+    private final LocalResolutionBuilder localBuilder;
 
     public TestSentinelClient(TestSentinelConfig config) {
         this.config = config;
         this.contextCollector = new ContextCollector(config);
         this.apiGateway = new ClaudeApiGateway(config);
         this.promptEngine = new PromptEngine();
+        this.localBuilder = new LocalResolutionBuilder();
 
-        log.info("TestSentinel initialized — model={}, enabled={}", config.getModel(), config.isEnabled());
+        if (config.isKnowledgeBaseEnabled()) {
+            this.knowledgeBase = new KnownConditionRepository(config.getKnowledgeBasePath());
+            log.info("TestSentinel initialized — model={}, enabled={}, knowledgeBase={} patterns",
+                config.getModel(), config.isEnabled(), knowledgeBase.size());
+        } else {
+            this.knowledgeBase = null;
+            log.info("TestSentinel initialized — model={}, enabled={}, knowledgeBase=disabled",
+                config.getModel(), config.isEnabled());
+        }
     }
 
     // ── Primary API ───────────────────────────────────────────────────────────
 
     /**
      * Analyzes any exception caught during test execution.
-     * Automatically maps common Selenium exceptions to the appropriate ConditionType.
-     *
-     * @param driver    Active WebDriver session
-     * @param exception The caught exception
-     * @return InsightResponse with root cause analysis
+     * Checks knowledge base first; calls Claude only if no local match found.
      */
     public InsightResponse analyzeException(WebDriver driver, Exception exception) {
         return analyzeException(driver, exception, Collections.emptyList(), Collections.emptyMap());
     }
 
     /**
-     * Analyzes any exception caught during test execution, with test step history and metadata.
-     *
-     * @param driver     Active WebDriver session
-     * @param exception  The caught exception
-     * @param priorSteps Ordered list of test step descriptions (e.g., ["Navigate to login page", "Enter username"])
-     * @param testMeta   Test metadata map (e.g., {"testName": "loginTest", "suiteName": "SmokeTests"})
-     * @return InsightResponse with root cause analysis
+     * Analyzes any exception caught during test execution, with step history and metadata.
      */
     public InsightResponse analyzeException(
             WebDriver driver,
@@ -102,12 +117,7 @@ public class TestSentinelClient {
 
     /**
      * Analyzes a wrong-page condition where the test detects it is on an unexpected URL.
-     *
-     * @param driver      Active WebDriver session
-     * @param expectedUrl The URL pattern or full URL the test expected
-     * @param priorSteps  Ordered list of test step descriptions
-     * @param testMeta    Test metadata map
-     * @return InsightResponse with navigation root cause analysis
+     * Checks knowledge base first; calls Claude only if no local match found.
      */
     public InsightResponse analyzeWrongPage(
             WebDriver driver,
@@ -127,17 +137,33 @@ public class TestSentinelClient {
     }
 
     /**
-     * Analyzes a pre-built ConditionEvent directly.
-     * Use this for custom conditions or when you need full control over the payload.
+     * Analyzes a pre-built ConditionEvent.
      *
-     * @param event A fully constructed ConditionEvent
-     * @return InsightResponse with root cause analysis
+     * Resolution priority:
+     *   1. Local knowledge base match  — sub-millisecond, 0 tokens, confidence 1.0
+     *   2. Claude API call             — 3-8s, ~1500-3500 tokens, confidence from model
      */
     public InsightResponse analyzeEvent(ConditionEvent event) {
         if (!config.isEnabled()) {
             return InsightResponse.error("TestSentinel is disabled", 0);
         }
 
+        // ── Step 1: Local knowledge base ──────────────────────────────────────
+        if (knowledgeBase != null) {
+            long kbStart = System.currentTimeMillis();
+            Optional<KnownCondition> match = knowledgeBase.findExactMatch(event);
+            if (match.isPresent()) {
+                KnownCondition kc = match.get();
+                long latencyMs = System.currentTimeMillis() - kbStart;
+                knowledgeBase.recordHit(kc);
+                InsightResponse insight = localBuilder.build(kc, latencyMs);
+                log.info("TestSentinel: [LOCAL] Pattern '{}' matched — API call skipped ({}ms, 0 tokens)",
+                    kc.getId(), latencyMs);
+                return insight;
+            }
+        }
+
+        // ── Step 2: Claude API call ───────────────────────────────────────────
         long startMs = System.currentTimeMillis();
         try {
             var userContent = promptEngine.buildUserContent(event);
@@ -149,41 +175,125 @@ public class TestSentinelClient {
         }
     }
 
-    // ── Convenience logging ───────────────────────────────────────────────────
+    // ── Knowledge Base Training ───────────────────────────────────────────────
 
     /**
-     * Logs the InsightResponse to SLF4J at INFO level in a human-readable format.
-     * Includes Phase 2 ActionPlan details when present.
+     * Promotes a confirmed Claude resolution to the local knowledge base.
+     *
+     * After calling this, the next occurrence of the same condition pattern will
+     * be resolved locally in sub-millisecond time with zero API cost.
+     *
+     * Signals (urlPattern, locatorValuePattern, conditionType) are inferred from the
+     * ConditionEvent. Review the JSON file afterward to add domContains or exceptionType
+     * signals for tighter matching specificity.
+     *
+     * @param event    The original ConditionEvent that triggered the analysis
+     * @param insight  The InsightResponse confirmed to be correct by an engineer
+     * @param id       Short human-readable pattern key, e.g. "cookie-banner-checkout"
+     * @param addedBy  Engineer name or ID for audit trail
+     */
+    public void recordResolution(ConditionEvent event, InsightResponse insight,
+                                  String id, String addedBy) {
+        if (knowledgeBase == null) {
+            log.warn("TestSentinel: Cannot record resolution — TESTSENTINEL_KNOWLEDGE_BASE_PATH not configured");
+            return;
+        }
+        if (insight.isLocalResolution()) {
+            log.debug("TestSentinel: Skipping recordResolution — insight already came from local KB");
+            return;
+        }
+
+        KnownCondition kc = new KnownCondition();
+        kc.setId(id);
+        kc.setDescription("Promoted from Claude analysis on " + Instant.now());
+        kc.setEnabled(true);
+
+        // Infer matching signals from the event
+        kc.setUrlPattern(trimToNull(event.getCurrentUrl()));
+        kc.setLocatorValuePattern(trimToNull(event.getLocatorValue()));
+        kc.setConditionType(
+            event.getConditionType() != null ? event.getConditionType().name() : null);
+        // domContains and exceptionType are intentionally not auto-populated — they require
+        // manual curation to avoid over-broad matches. Add them directly in the JSON file.
+
+        int signalCount = countNonNull(kc.getUrlPattern(), kc.getLocatorValuePattern(), kc.getConditionType());
+        kc.setMinMatchSignals(signalCount > 1 ? 2 : 1);
+
+        // Copy resolution verbatim from confirmed insight
+        kc.setConditionCategory(
+            insight.getConditionCategory() != null ? insight.getConditionCategory().name() : null);
+        kc.setRootCause(insight.getRootCause());
+        kc.setEvidenceHighlights(insight.getEvidenceHighlights());
+        kc.setTransient(insight.isTransient());
+        kc.setSuggestedTestOutcome(insight.getSuggestedTestOutcome());
+        kc.setActionPlan(insight.getActionPlan());
+        kc.setContinueContext(insight.getContinueContext());
+
+        kc.setAddedBy(addedBy);
+        kc.setAddedAt(Instant.now());
+
+        knowledgeBase.add(kc);
+        log.info("TestSentinel: Pattern '{}' added to knowledge base by {} — future occurrences resolve locally",
+            id, addedBy);
+    }
+
+    /**
+     * Reloads the knowledge base from disk without restarting the suite.
+     * Call this from a @BeforeSuite or @BeforeClass hook after hand-editing known-conditions.json.
+     */
+    public void reloadKnowledgeBase() {
+        if (knowledgeBase != null) {
+            knowledgeBase.reload();
+            log.info("TestSentinel: Knowledge base reloaded — {} active patterns", knowledgeBase.size());
+        } else {
+            log.warn("TestSentinel: Cannot reload — knowledge base not configured");
+        }
+    }
+
+    /**
+     * Returns the number of active patterns currently loaded.
+     * Returns 0 if the knowledge base is not configured.
+     */
+    public int knowledgeBaseSize() {
+        return knowledgeBase != null ? knowledgeBase.size() : 0;
+    }
+
+    // ── Convenience Logging ───────────────────────────────────────────────────
+
+    /**
+     * Logs the InsightResponse at INFO level in a human-readable format.
+     * Shows [LOCAL] source tag when resolved from the knowledge base.
      */
     public void logInsight(InsightResponse insight) {
         if (insight == null) return;
 
-        // CONTINUE path — distinct formatting so it stands out as a green-light signal
+        // CONTINUE path — green-light signal
         if (insight.isContinuable()) {
-            log.info("╔══ TestSentinel: CONTINUE \u2014 No Problem Detected ══════════════╗");
+            log.info("╔══ TestSentinel: CONTINUE — No Problem Detected ══════════════╗");
             log.info("║  Category  : {}", insight.getConditionCategory());
-            log.info("║  Confidence: {}%", Math.round(insight.getConfidence() * 100));
+            log.info("║  Confidence: {}%  |  Source: {}",
+                Math.round(insight.getConfidence() * 100),
+                insight.isLocalResolution() ? "[LOCAL] " + insight.getResolvedFromPattern() : "Claude API");
             log.info("║  Reason    : {}", insight.getRootCause());
             if (insight.getContinueContext() != null) {
                 var ctx = insight.getContinueContext();
                 log.info("║  State     : {}", ctx.getObservedState());
-                if (ctx.hasResumeHint()) {
-                    log.info("║  Resume At : {}", ctx.getResumeFromStepHint());
-                }
-                if (ctx.hasCaveats()) {
-                    log.info("║  \u26A0 Caveat  : {}", ctx.getCaveats());
-                }
+                if (ctx.hasResumeHint())  log.info("║  Resume At : {}", ctx.getResumeFromStepHint());
+                if (ctx.hasCaveats())     log.info("║  ⚠ Caveat  : {}", ctx.getCaveats());
             }
             log.info("║  Latency   : {}ms  |  Tokens: {}", insight.getAnalysisLatencyMs(), insight.getAnalysisTokens());
-            log.info("╚\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255D");
+            log.info("╚═════════════════════════════════════════════════════════════╝");
             return;
         }
 
-        // Problem path — existing format
-        log.info("╔══ TestSentinel Insight \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557");
+        // Problem path
+        String source = insight.isLocalResolution()
+            ? "[LOCAL:" + insight.getResolvedFromPattern() + "]"
+            : "[Claude API]";
+        log.info("╔══ TestSentinel Insight {} ═══════════════════════════════════╗", source);
         log.info("║  Category    : {}", insight.getConditionCategory());
         log.info("║  Confidence  : {}%", Math.round(insight.getConfidence() * 100));
-        log.info("║  Transient   : {}", insight.isTransient() ? "Yes \u2014 retry may resolve" : "No \u2014 persistent condition");
+        log.info("║  Transient   : {}", insight.isTransient() ? "Yes — retry may resolve" : "No — persistent condition");
         log.info("║  Root Cause  : {}", insight.getRootCause());
         log.info("║  Outcome     : {}", insight.getSuggestedTestOutcome());
         if (insight.getEvidenceHighlights() != null) {
@@ -191,8 +301,8 @@ public class TestSentinelClient {
         }
         if (insight.hasActionPlan()) {
             var plan = insight.getActionPlan();
-            log.info("║  \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 \u2551");
-            log.info("║  Action Plan : {} (confidence {}%)", plan.getPlanSummary(),
+            log.info("║  ─────────────────────────────────────────────────────────── ║");
+            log.info("║  Action Plan : {} ({}%)", plan.getPlanSummary(),
                 Math.round(plan.getPlanConfidence() * 100));
             log.info("║  Human Needed: {}", plan.isRequiresHuman() ? "Yes" : "No");
             for (int i = 0; i < plan.getActions().size(); i++) {
@@ -203,24 +313,33 @@ public class TestSentinelClient {
             }
         }
         log.info("║  Latency     : {}ms  |  Tokens: {}", insight.getAnalysisLatencyMs(), insight.getAnalysisTokens());
-        log.info("╚\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255D");
+        log.info("╚═════════════════════════════════════════════════════════════╝");
     }
 
-    // ── Private helpers ───────────────────────────────────────────────────────
+    // ── Private Helpers ───────────────────────────────────────────────────────
 
     private ConditionType mapExceptionToConditionType(Exception exception) {
         if (exception == null) return ConditionType.EXCEPTION;
-        String className = exception.getClass().getSimpleName();
-        return switch (className) {
-            case "NoSuchElementException"      -> ConditionType.LOCATOR_NOT_FOUND;
-            case "TimeoutException"            -> ConditionType.TIMEOUT;
+        return switch (exception.getClass().getSimpleName()) {
+            case "NoSuchElementException"         -> ConditionType.LOCATOR_NOT_FOUND;
+            case "TimeoutException"               -> ConditionType.TIMEOUT;
             case "StaleElementReferenceException" -> ConditionType.EXCEPTION;
-            case "WebDriverException"          -> ConditionType.EXCEPTION;
-            default                            -> ConditionType.EXCEPTION;
+            case "WebDriverException"             -> ConditionType.EXCEPTION;
+            default                               -> ConditionType.EXCEPTION;
         };
     }
 
     private String safeGetUrl(WebDriver driver) {
         try { return driver.getCurrentUrl(); } catch (Exception e) { return "unavailable"; }
+    }
+
+    private static String trimToNull(String s) {
+        return (s != null && !s.isBlank()) ? s.trim() : null;
+    }
+
+    private static int countNonNull(Object... values) {
+        int count = 0;
+        for (Object v : values) if (v != null) count++;
+        return count;
     }
 }

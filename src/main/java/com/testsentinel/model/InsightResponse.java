@@ -38,6 +38,11 @@ public class InsightResponse {
     // ── Continue Context (populated when suggestedTestOutcome = CONTINUE) ─────
     private ContinueContext continueContext;
 
+    // ── Knowledge Base Resolution ─────────────────────────────────────────────
+    // Non-null when this response was built locally from a KnownCondition pattern.
+    // Null when produced by Claude API call. Used for audit, reporting, and logging.
+    private String resolvedFromPattern;
+
     // ── Condition Categories ──────────────────────────────────────────────────
 
     public enum ConditionCategory {
@@ -84,6 +89,7 @@ public class InsightResponse {
     // ── Phase 2 getter ────────────────────────────────────────────────────────
     public ActionPlan getActionPlan() { return actionPlan; }
     public ContinueContext getContinueContext() { return continueContext; }
+    public String getResolvedFromPattern() { return resolvedFromPattern; }
 
     // ── Setters (used by Jackson deserialization) ─────────────────────────────
 
@@ -102,6 +108,7 @@ public class InsightResponse {
     // ── Phase 2 setter ────────────────────────────────────────────────────────
     public void setActionPlan(ActionPlan actionPlan) { this.actionPlan = actionPlan; }
     public void setContinueContext(ContinueContext continueContext) { this.continueContext = continueContext; }
+    public void setResolvedFromPattern(String resolvedFromPattern) { this.resolvedFromPattern = resolvedFromPattern; }
 
     // ── Convenience ───────────────────────────────────────────────────────────
 
@@ -110,6 +117,13 @@ public class InsightResponse {
 
     /** Phase 2: true if an ActionPlan was returned with at least one step */
     public boolean hasActionPlan() { return actionPlan != null && actionPlan.hasActions(); }
+
+    /**
+     * True when this response was resolved locally from a KnownCondition pattern.
+     * False when produced by a Claude API call.
+     * Useful for metrics: track the ratio of local vs API resolutions over time.
+     */
+    public boolean isLocalResolution() { return resolvedFromPattern != null; }
 
     /**
      * Returns true when Claude determined there is no problem — the test should
