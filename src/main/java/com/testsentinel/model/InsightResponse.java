@@ -35,24 +35,30 @@ public class InsightResponse {
     // ── Phase 2 Addition ──────────────────────────────────────────────────────
     private ActionPlan actionPlan;        // Null in Phase 1 mode; populated in Phase 2 mode
 
+    // ── Continue Context (populated when suggestedTestOutcome = CONTINUE) ─────
+    private ContinueContext continueContext;
+
     // ── Condition Categories ──────────────────────────────────────────────────
 
     public enum ConditionCategory {
-        OVERLAY,           // Modal, cookie banner, cookie consent, ad overlay
-        LOADING,           // Spinner, skeleton screen, page still hydrating
-        STALE_DOM,         // Element was present but detached / re-rendered
-        NAVIGATION,        // Wrong page, unexpected redirect, auth redirect
-        INFRA,             // Slow response, timeout, CDN failure
-        AUTH,              // Session expired, login wall
-        TEST_DATA,         // Missing or corrupted test data
-        FLAKE,             // Non-deterministic rendering, race condition
-        APPLICATION_BUG,   // Genuine defect — element removed, broken flow
-        UNKNOWN            // Claude could not classify with sufficient confidence
+        OVERLAY,                  // Modal, cookie banner, cookie consent, ad overlay
+        LOADING,                  // Spinner, skeleton screen, page still hydrating
+        STALE_DOM,                // Element was present but detached / re-rendered
+        NAVIGATION,               // Wrong page, unexpected redirect, auth redirect
+        INFRA,                    // Slow response, timeout, CDN failure
+        AUTH,                     // Session expired, login wall
+        TEST_DATA,                // Missing or corrupted test data
+        FLAKE,                    // Non-deterministic rendering, race condition
+        APPLICATION_BUG,          // Genuine defect — element removed, broken flow
+        NAVIGATED_PAST,           // Test already reached destination via prior session/state
+        STATE_ALREADY_SATISFIED,  // Precondition the test was about to establish is already true
+        UNKNOWN                   // Claude could not classify with sufficient confidence
     }
 
     // ── Suggested Test Outcomes ───────────────────────────────────────────────
 
     public enum SuggestedOutcome {
+        CONTINUE,          // No problem — state is valid; test may proceed from current position
         RETRY,             // Condition is transient; retry the action
         SKIP,              // Condition blocks this test but not the suite
         FAIL_WITH_CONTEXT, // Genuine failure; attach insight to the failure report
@@ -77,6 +83,7 @@ public class InsightResponse {
 
     // ── Phase 2 getter ────────────────────────────────────────────────────────
     public ActionPlan getActionPlan() { return actionPlan; }
+    public ContinueContext getContinueContext() { return continueContext; }
 
     // ── Setters (used by Jackson deserialization) ─────────────────────────────
 
@@ -94,6 +101,7 @@ public class InsightResponse {
 
     // ── Phase 2 setter ────────────────────────────────────────────────────────
     public void setActionPlan(ActionPlan actionPlan) { this.actionPlan = actionPlan; }
+    public void setContinueContext(ContinueContext continueContext) { this.continueContext = continueContext; }
 
     // ── Convenience ───────────────────────────────────────────────────────────
 
@@ -102,6 +110,36 @@ public class InsightResponse {
 
     /** Phase 2: true if an ActionPlan was returned with at least one step */
     public boolean hasActionPlan() { return actionPlan != null && actionPlan.hasActions(); }
+
+    /**
+     * Returns true when Claude determined there is no problem — the test should
+     * continue executing from its current position without retry or failure.
+     *
+     * This covers two categories:
+     *   NAVIGATED_PAST          — test already reached its intended destination via prior session state
+     *   STATE_ALREADY_SATISFIED — the precondition the test was about to establish is already true
+     *
+     * Usage in test code:
+     * <pre>
+     *   if (insight.isContinuable()) {
+     *       log.info("TestSentinel: No problem detected — continuing. Reason: {}", insight.getRootCause());
+     *       // proceed with the next test step
+     *   }
+     * </pre>
+     */
+    public boolean isContinuable() {
+        return SuggestedOutcome.CONTINUE.name().equals(suggestedTestOutcome)
+            || conditionCategory == ConditionCategory.NAVIGATED_PAST
+            || conditionCategory == ConditionCategory.STATE_ALREADY_SATISFIED;
+    }
+
+    /**
+     * Explicit check on the suggestedTestOutcome field only (ignores category).
+     * Prefer isContinuable() for most usage — it catches both category and outcome signals.
+     */
+    public boolean isContinueOutcome() {
+        return SuggestedOutcome.CONTINUE.name().equals(suggestedTestOutcome);
+    }
 
     @Override
     public String toString() {

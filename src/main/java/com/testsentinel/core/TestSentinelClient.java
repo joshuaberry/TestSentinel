@@ -157,34 +157,53 @@ public class TestSentinelClient {
      */
     public void logInsight(InsightResponse insight) {
         if (insight == null) return;
-        log.info("╔══ TestSentinel Insight ══════════════════════════════════════╗");
+
+        // CONTINUE path — distinct formatting so it stands out as a green-light signal
+        if (insight.isContinuable()) {
+            log.info("╔══ TestSentinel: CONTINUE \u2014 No Problem Detected ══════════════╗");
+            log.info("║  Category  : {}", insight.getConditionCategory());
+            log.info("║  Confidence: {}%", Math.round(insight.getConfidence() * 100));
+            log.info("║  Reason    : {}", insight.getRootCause());
+            if (insight.getContinueContext() != null) {
+                var ctx = insight.getContinueContext();
+                log.info("║  State     : {}", ctx.getObservedState());
+                if (ctx.hasResumeHint()) {
+                    log.info("║  Resume At : {}", ctx.getResumeFromStepHint());
+                }
+                if (ctx.hasCaveats()) {
+                    log.info("║  \u26A0 Caveat  : {}", ctx.getCaveats());
+                }
+            }
+            log.info("║  Latency   : {}ms  |  Tokens: {}", insight.getAnalysisLatencyMs(), insight.getAnalysisTokens());
+            log.info("╚\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255D");
+            return;
+        }
+
+        // Problem path — existing format
+        log.info("╔══ TestSentinel Insight \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557");
         log.info("║  Category    : {}", insight.getConditionCategory());
         log.info("║  Confidence  : {}%", Math.round(insight.getConfidence() * 100));
-        log.info("║  Transient   : {}", insight.isTransient() ? "Yes — retry may resolve" : "No — persistent condition");
+        log.info("║  Transient   : {}", insight.isTransient() ? "Yes \u2014 retry may resolve" : "No \u2014 persistent condition");
         log.info("║  Root Cause  : {}", insight.getRootCause());
         log.info("║  Outcome     : {}", insight.getSuggestedTestOutcome());
         if (insight.getEvidenceHighlights() != null) {
             insight.getEvidenceHighlights().forEach(e -> log.info("║  Evidence    : {}", e));
         }
-        // Phase 2: log action plan if present
         if (insight.hasActionPlan()) {
             var plan = insight.getActionPlan();
-            log.info("║  ─────────────────────────────────────────────────────────── ║");
+            log.info("║  \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 \u2551");
             log.info("║  Action Plan : {} (confidence {}%)", plan.getPlanSummary(),
                 Math.round(plan.getPlanConfidence() * 100));
             log.info("║  Human Needed: {}", plan.isRequiresHuman() ? "Yes" : "No");
             for (int i = 0; i < plan.getActions().size(); i++) {
                 var step = plan.getActions().get(i);
                 log.info("║  Step {}  [{}][{}] {} ({}%)",
-                    i + 1,
-                    step.getActionType(),
-                    step.getRiskLevel(),
-                    step.getDescription(),
-                    Math.round(step.getConfidence() * 100));
+                    i + 1, step.getActionType(), step.getRiskLevel(),
+                    step.getDescription(), Math.round(step.getConfidence() * 100));
             }
         }
         log.info("║  Latency     : {}ms  |  Tokens: {}", insight.getAnalysisLatencyMs(), insight.getAnalysisTokens());
-        log.info("╚═════════════════════════════════════════════════════════════╝");
+        log.info("╚\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255D");
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────

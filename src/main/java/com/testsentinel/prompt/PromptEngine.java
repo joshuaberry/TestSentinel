@@ -49,15 +49,32 @@ public class PromptEngine {
         - OVERLAY: Modal dialog, cookie consent banner, notification popup, ad overlay blocking interaction
         - LOADING: Page still rendering — spinner visible, skeleton screen, pending XHR/fetch, document.readyState not complete
         - STALE_DOM: Element was found but has been detached due to re-render, SPA route change, or dynamic update
-        - NAVIGATION: Test is on wrong page — unexpected redirect, auth redirect, error page, 404
+        - NAVIGATION: Wrong page, unexpected redirect, error page, 404 — the test is lost and cannot continue without intervention
         - INFRA: Server slow or unavailable — timeout, 5xx response, CDN failure, high response time
-        - AUTH: Session expired, login wall appeared, CSRF token mismatch
+        - AUTH: Session expired, login wall appeared, CSRF token mismatch — user needs to re-authenticate
         - TEST_DATA: Expected data not present — empty state, different user context, environment-specific data issue
         - FLAKE: Non-deterministic race condition — element appears and disappears, timing-sensitive interaction
         - APPLICATION_BUG: Genuine defect — element has been removed from the DOM, broken user flow, JavaScript error
+        - NAVIGATED_PAST: The test expected to be on an intermediate page (e.g., login page) but is already on
+          the intended destination (e.g., dashboard) because session state, cookies, or prior test execution
+          carried the user there. The test's intent is already satisfied — no remediation needed.
+        - STATE_ALREADY_SATISFIED: A precondition the test was about to establish is already true before the test
+          acted. Examples: user is already logged in, item is already in cart, form is already populated,
+          feature flag is already in the expected state. The test can proceed from its current position.
         - UNKNOWN: Insufficient evidence to classify with confidence
 
+        ## CRITICAL: Distinguishing NAVIGATION from NAVIGATED_PAST / STATE_ALREADY_SATISFIED
+        NAVIGATION = the test is on the wrong page and CANNOT continue — it needs to recover.
+        NAVIGATED_PAST / STATE_ALREADY_SATISFIED = the test is in a VALID state that is AHEAD of or
+        equivalent to where it expected to be — it CAN continue, possibly skipping steps it no longer needs.
+
+        Ask yourself: "Is the current state a problem, or is it actually fine?"
+        If the application is on the correct destination URL and the user appears authenticated/ready,
+        it is NAVIGATED_PAST or STATE_ALREADY_SATISFIED — not NAVIGATION.
+
         ## Suggested Outcomes
+        - CONTINUE: No problem detected. The current state is valid. The test should proceed from its
+          current position. Use for NAVIGATED_PAST and STATE_ALREADY_SATISFIED categories.
         - RETRY: Condition is transient; retrying the action immediately or after a brief wait is likely to succeed
         - SKIP: Condition blocks this specific test but not the entire suite; skip with enriched context
         - FAIL_WITH_CONTEXT: Genuine application issue; fail the test and attach this analysis to the report
@@ -77,8 +94,18 @@ public class PromptEngine {
             "<another concrete observation>"
           ],
           "isTransient": <true or false>,
-          "suggestedTestOutcome": "<RETRY | SKIP | FAIL_WITH_CONTEXT | INVESTIGATE>"
+          "suggestedTestOutcome": "<CONTINUE | RETRY | SKIP | FAIL_WITH_CONTEXT | INVESTIGATE>",
+          "continueContext": {
+            "continueReason": "<why the test can safely continue>",
+            "observedState": "<description of the current valid state>",
+            "resumeFromStepHint": "<name or description of the test step to resume from, or null>",
+            "caveats": "<assumptions the engineer should be aware of, or null if none>",
+            "noteworthy": <true if this continuation involves an assumption that should appear in the report>
+          }
         }
+
+        The continueContext field must be present and fully populated when suggestedTestOutcome is CONTINUE.
+        The continueContext field must be null (omitted) for all other suggestedTestOutcome values.
 
         If evidence is insufficient for confident classification, use UNKNOWN category with confidence < 0.4
         and suggestedTestOutcome INVESTIGATE.
@@ -110,13 +137,24 @@ public class PromptEngine {
         - OVERLAY: Modal dialog, cookie consent banner, notification popup, ad overlay blocking interaction
         - LOADING: Page still rendering — spinner visible, skeleton screen, pending XHR/fetch, document.readyState not complete
         - STALE_DOM: Element was found but has been detached due to re-render, SPA route change, or dynamic update
-        - NAVIGATION: Test is on wrong page — unexpected redirect, auth redirect, error page, 404
+        - NAVIGATION: Wrong page, unexpected redirect, error page, 404 — the test is lost and cannot continue without intervention
         - INFRA: Server slow or unavailable — timeout, 5xx response, CDN failure, high response time
-        - AUTH: Session expired, login wall appeared, CSRF token mismatch
+        - AUTH: Session expired, login wall appeared, CSRF token mismatch — user needs to re-authenticate
         - TEST_DATA: Expected data not present — empty state, different user context, environment-specific data issue
         - FLAKE: Non-deterministic race condition — element appears and disappears, timing-sensitive interaction
         - APPLICATION_BUG: Genuine defect — element has been removed from the DOM, broken user flow, JavaScript error
+        - NAVIGATED_PAST: The test expected to be on an intermediate page (e.g., login page) but is already on
+          the intended destination (e.g., dashboard) because session state, cookies, or prior test execution
+          carried the user there. The test's intent is already satisfied — no remediation needed.
+        - STATE_ALREADY_SATISFIED: A precondition the test was about to establish is already true before the test
+          acted. Examples: user is already logged in, item is already in cart, form is already populated,
+          feature flag is already in the expected state. The test can proceed from its current position.
         - UNKNOWN: Insufficient evidence to classify with confidence
+
+        ## CRITICAL: Distinguishing NAVIGATION from NAVIGATED_PAST / STATE_ALREADY_SATISFIED
+        NAVIGATION = the test is on the wrong page and CANNOT continue — it needs to recover.
+        NAVIGATED_PAST / STATE_ALREADY_SATISFIED = the test is in a VALID state AHEAD of where it expected —
+        it CAN continue, possibly skipping steps it no longer needs to execute.
 
         ## Action Types Available
         Use ONLY these action type values in your actionPlan:
@@ -146,6 +184,9 @@ public class PromptEngine {
         9. Set requiresVerification=true for any CLICK or DISMISS_OVERLAY that must succeed for the test to continue
 
         ## Suggested Test Outcomes
+        - CONTINUE: No problem detected. The current state is valid. The test should proceed from its current
+          position. Use for NAVIGATED_PAST and STATE_ALREADY_SATISFIED. When this outcome is used, populate
+          continueContext and set actionPlan to null.
         - RETRY: Condition is transient; retrying the action immediately or after a brief wait is likely to succeed
         - SKIP: Condition blocks this specific test but not the entire suite; skip with enriched context
         - FAIL_WITH_CONTEXT: Genuine application issue; fail the test and attach this analysis to the report
@@ -165,7 +206,14 @@ public class PromptEngine {
             "<another concrete observation>"
           ],
           "isTransient": <true or false>,
-          "suggestedTestOutcome": "<RETRY | SKIP | FAIL_WITH_CONTEXT | INVESTIGATE>",
+          "suggestedTestOutcome": "<CONTINUE | RETRY | SKIP | FAIL_WITH_CONTEXT | INVESTIGATE>",
+          "continueContext": {
+            "continueReason": "<why the test can safely continue, or null>",
+            "observedState": "<description of the current valid state, or null>",
+            "resumeFromStepHint": "<step name to resume from, or null>",
+            "caveats": "<assumptions the engineer should be aware of, or null>",
+            "noteworthy": <true or false>
+          },
           "actionPlan": {
             "planSummary": "<one sentence describing the overall recovery strategy>",
             "planConfidence": <float 0.0-1.0, overall confidence the plan resolves the condition>,
@@ -192,6 +240,12 @@ public class PromptEngine {
         If conditionCategory is APPLICATION_BUG, the actionPlan should contain only CAPTURE_SCREENSHOT,
         CAPTURE_HAR (if network issue suspected), and SKIP_TEST or FAIL_WITH_CONTEXT guidance.
         Do not recommend browser interaction steps for genuine application bugs.
+
+        If conditionCategory is NAVIGATED_PAST or STATE_ALREADY_SATISFIED:
+          - Set suggestedTestOutcome to CONTINUE
+          - Populate continueContext fully
+          - Set actionPlan to null — no remediation steps are needed
+          - The continueContext.caveats field should note any assumptions (e.g., user identity not verified)
         """;
 
     // ── Backward-compatible alias ─────────────────────────────────────────────

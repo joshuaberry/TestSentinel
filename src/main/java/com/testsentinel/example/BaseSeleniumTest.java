@@ -77,21 +77,36 @@ public class BaseSeleniumTest {
         TestSentinelListener listener = listenerHolder.get();
         if (listener != null) {
             InsightResponse insight = listener.getLastInsight();
-            if (insight != null && result.getStatus() == ITestResult.FAILURE) {
-                // Phase 1 attributes
-                result.setAttribute("testsentinel_insight", insight);
-                result.setAttribute("testsentinel_root_cause", insight.getRootCause());
-                result.setAttribute("testsentinel_category", insight.getConditionCategory());
+            if (insight != null) {
 
-                // Phase 2: attach action plan summary to report
-                if (insight.hasActionPlan()) {
-                    result.setAttribute("testsentinel_plan_summary",
-                        insight.getActionPlan().getPlanSummary());
-                    result.setAttribute("testsentinel_action_count",
-                        insight.getActionPlan().size());
-                    // Build a text summary for embedding in failure message
-                    String planText = advisor.buildReportSummary(insight);
-                    result.setAttribute("testsentinel_recommendations", planText);
+                if (insight.isContinuable()) {
+                    // TestSentinel determined there was no actual problem —
+                    // the test intercepted a condition but state is valid.
+                    // Record as informational only; do NOT treat as failure.
+                    log.info("TestSentinel: CONTINUE signal on test '{}' — {}",
+                        result.getName(), insight.getRootCause());
+                    result.setAttribute("testsentinel_outcome", "CONTINUE");
+                    result.setAttribute("testsentinel_root_cause", insight.getRootCause());
+                    if (insight.getContinueContext() != null) {
+                        result.setAttribute("testsentinel_observed_state",
+                            insight.getContinueContext().getObservedState());
+                        if (insight.getContinueContext().hasCaveats()) {
+                            result.setAttribute("testsentinel_caveat",
+                                insight.getContinueContext().getCaveats());
+                        }
+                    }
+
+                } else if (result.getStatus() == ITestResult.FAILURE) {
+                    // Standard failure path — attach insight and action plan
+                    result.setAttribute("testsentinel_insight", insight);
+                    result.setAttribute("testsentinel_root_cause", insight.getRootCause());
+                    result.setAttribute("testsentinel_category", insight.getConditionCategory());
+                    if (insight.hasActionPlan()) {
+                        result.setAttribute("testsentinel_plan_summary",
+                            insight.getActionPlan().getPlanSummary());
+                        result.setAttribute("testsentinel_recommendations",
+                            advisor.buildReportSummary(insight));
+                    }
                 }
             }
         }
@@ -115,30 +130,40 @@ public class BaseSeleniumTest {
         if (steps != null) steps.add(description);
     }
 
-    // ── Phase 2 explicit integration helper ───────────────────────────────────
+    // ── Explicit integration helper ───────────────────────────────────────────
 
     /**
-     * Analyzes an exception, logs the full insight + action plan, and returns
-     * the InsightResponse. Use in catch blocks for targeted Phase 2 integration.
+     * Analyzes an exception or condition, logs the full insight, and returns the InsightResponse.
+     * Handles all three possible outcomes:
      *
      * <pre>
+     *   // CONTINUE outcome — logged in a test's wrong-page detection:
+     *   String expectedUrl = "/checkout";
+     *   if (!driver.getCurrentUrl().contains(expectedUrl)) {
+     *       InsightResponse insight = analyzeAndAdvise(
+     *           driver.getCurrentUrl(), expectedUrl
+     *       );
+     *       if (insight.isContinuable()) {
+     *           // Already past login — proceed from current position
+     *           log.info("Skipping login step: {}", insight.getRootCause());
+     *           return; // or jump to next step
+     *       }
+     *   }
+     *
+     *   // PROBLEM outcome — logged in a catch block:
      *   try {
      *       recordStep("Click submit button");
      *       driver.findElement(By.id("submit")).click();
      *   } catch (NoSuchElementException e) {
      *       InsightResponse insight = analyzeAndAdvise(e);
-     *
-     *       // Get the first safe recommended action
-     *       ActionStep first = advisor.getFirstExecutableStep(insight);
-     *       if (first != null) {
-     *           log.info("Recommended next action: [{}] {}", first.getActionType(), first.getDescription());
+     *       if (insight.isContinuable()) {
+     *           return; // No problem — form already submitted
      *       }
-     *
      *       if (insight.isTransient()) {
      *           Thread.sleep(2000); // retry...
      *       } else {
-     *           String summary = advisor.buildReportSummary(insight);
-     *           throw new RuntimeException(insight.getRootCause() + summary, e);
+     *           throw new RuntimeException(
+     *               insight.getRootCause() + advisor.buildReportSummary(insight), e);
      *       }
      *   }
      * </pre>
@@ -148,8 +173,30 @@ public class BaseSeleniumTest {
             getDriver(), e, getSteps(),
             Map.of("testName", "current test", "framework", "TestNG")
         );
-        sentinel.logInsight(insight);           // Logs Phase 1 + Phase 2 details
-        advisor.logRecommendations(insight);    // Logs formatted action plan
+        sentinel.logInsight(insight);
+        if (!insight.isContinuable()) {
+            advisor.logRecommendations(insight);
+        }
+        return insight;
+    }
+
+    /**
+     * Analyzes a wrong-page or unexpected-state condition (no exception required).
+     * Use this when the test detects the wrong URL or unexpected application state
+     * proactively — before an exception is thrown.
+     *
+     * Returns an InsightResponse where isContinuable() may be true if the condition
+     * turns out to be NAVIGATED_PAST or STATE_ALREADY_SATISFIED.
+     */
+    protected InsightResponse analyzeAndAdvise(String actualUrl, String expectedUrl) {
+        InsightResponse insight = sentinel.analyzeWrongPage(
+            getDriver(), expectedUrl, getSteps(),
+            Map.of("testName", "current test", "actualUrl", actualUrl)
+        );
+        sentinel.logInsight(insight);
+        if (!insight.isContinuable()) {
+            advisor.logRecommendations(insight);
+        }
         return insight;
     }
 }
