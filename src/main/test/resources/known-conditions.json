@@ -1,0 +1,40 @@
+[
+  {
+    "id": "google-missing-lucky-btn",
+    "description": "Scenario attempts to find a non-standard Lucky button variant that does not exist on Google homepage. Known flake in regression suite.",
+    "enabled": true,
+    "urlPattern": "google.com",
+    "locatorValuePattern": "i-am-feeling-extra-lucky",
+    "conditionType": "LOCATOR_NOT_FOUND",
+    "minMatchSignals": 2,
+    "conditionCategory": "APPLICATION_BUG",
+    "rootCause": "The element '#i-am-feeling-extra-lucky' does not exist on the Google homepage. Google only renders standard 'I'm Feeling Lucky' variants and hides some in specific locales. This is a known test selector mismatch — the test should target '#gbqfba' or 'input[name=btnI]' instead.",
+    "evidenceHighlights": [
+      "URL contains google.com — correct page",
+      "Selector '#i-am-feeling-extra-lucky' has no match in current DOM",
+      "Standard 'I'm Feeling Lucky' button is present with different id"
+    ],
+    "isTransient": false,
+    "suggestedTestOutcome": "FAIL_WITH_CONTEXT",
+    "actionPlan": {
+      "planSummary": "Update the selector to target the correct Google button element",
+      "planConfidence": 0.97,
+      "requiresHuman": true,
+      "actions": [
+        {
+          "actionType": "SKIP_STEP",
+          "description": "Skip this interaction — the target element is a test artefact",
+          "confidence": 0.97,
+          "riskLevel": "LOW",
+          "rationale": "Known pattern: element never exists on google.com. Skipping prevents noisy failures.",
+          "requiresVerification": false,
+          "parameters": {}
+        }
+      ]
+    },
+    "hitCount": 0,
+    "addedBy": "demo-seed",
+    "addedAt": "2026-02-19T00:00:00Z",
+    "notes": "Seed pattern for the @local-resolution Cucumber scenarios. Do not delete."
+  }
+]

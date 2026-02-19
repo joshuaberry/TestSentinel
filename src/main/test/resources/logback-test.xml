@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!--
+        Logback configuration for the google-sentinel-tests project.
+
+        TestSentinel produces box-drawn log output using Unicode characters.
+        The pattern here uses a wide format so those lines render cleanly.
+    -->
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %-40logger{40} - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>target/logs/sentinel-tests.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>target/logs/sentinel-tests.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>7</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %-40logger{40} - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- TestSentinel itself — INFO to see analysis output; set DEBUG for full prompts -->
+    <logger name="com.testsentinel" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </logger>
+
+    <!-- Our test project -->
+    <logger name="com.example" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </logger>
+
+    <!-- Selenium / WebDriverManager — WARN to suppress noisy driver logs -->
+    <logger name="org.openqa.selenium"           level="WARN"/>
+    <logger name="io.github.bonigarcia.wdm"      level="WARN"/>
+    <logger name="com.google.auth"               level="WARN"/>
+
+    <!-- Cucumber itself -->
+    <logger name="io.cucumber" level="WARN"/>
+
+    <!-- OkHttp (used by TestSentinel for API calls) — suppress noisy connection logs -->
+    <logger name="okhttp3" level="WARN"/>
+
+    <root level="WARN">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+
+</configuration>
