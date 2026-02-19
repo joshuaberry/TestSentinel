@@ -24,7 +24,7 @@
         <junit.version>5.10.2</junit.version>
         <!-- ── For Unit Tests ──────────────────────────────────────────────── -->
         <cucumber.version>7.15.0</cucumber.version>
-        <webdrivermanager.version>5.7.0</webdrivermanager.version>
+        <webdrivermanager.version>6.1.0</webdrivermanager.version>
         <cucumber.reports.plugin>io.cucumber:cucumber-reporting:5.7.5</cucumber.reports.plugin>
 
     </properties>
@@ -107,12 +107,6 @@
         </dependency>
 
         <!-- Test dependencies -->
-        <dependency>
-            <groupId>org.testng</groupId>
-            <artifactId>testng</artifactId>
-            <version>${testng.version}</version>
-            <scope>test</scope>
-        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
