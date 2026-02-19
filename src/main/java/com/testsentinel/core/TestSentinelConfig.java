@@ -1,5 +1,7 @@
 package com.testsentinel.core;
 
+import com.testsentinel.model.ActionStep;
+
 /**
  * Configuration for the TestSentinel client.
  *
@@ -13,6 +15,8 @@ package com.testsentinel.core;
  *   TESTSENTINEL_CAPTURE_DOM - Whether to capture DOM snapshots (default: true)
  *   TESTSENTINEL_CAPTURE_SCREENSHOT - Whether to capture screenshots (default: true)
  *   TESTSENTINEL_DOM_MAX_CHARS - Max DOM snapshot length (default: 15000 chars)
+ *   TESTSENTINEL_PHASE2_ENABLED - Enable Phase 2 action plan generation (default: false)
+ *   TESTSENTINEL_MAX_RISK_LEVEL - Max risk level for recommendations: LOW|MEDIUM|HIGH (default: LOW)
  */
 public class TestSentinelConfig {
 
@@ -30,6 +34,8 @@ public class TestSentinelConfig {
     private final int domMaxChars;
     private final boolean enabled;       // Master switch — set false to disable without removing integration
     private final boolean logPrompts;    // Log full prompts to SLF4J DEBUG for debugging
+    private final boolean phase2Enabled; // Enable Phase 2 action plan generation
+    private final ActionStep.RiskLevel maxRiskLevel; // Maximum risk level for recommendations
 
     private TestSentinelConfig(Builder b) {
         this.apiKey = b.apiKey;
@@ -41,6 +47,8 @@ public class TestSentinelConfig {
         this.domMaxChars = b.domMaxChars;
         this.enabled = b.enabled;
         this.logPrompts = b.logPrompts;
+        this.phase2Enabled = b.phase2Enabled;
+        this.maxRiskLevel = b.maxRiskLevel;
     }
 
     // ── Static factory: load from environment variables ───────────────────────
@@ -63,6 +71,8 @@ public class TestSentinelConfig {
             .domMaxChars(intEnvOrDefault("TESTSENTINEL_DOM_MAX_CHARS", DEFAULT_DOM_MAX_CHARS))
             .enabled(boolEnvOrDefault("TESTSENTINEL_ENABLED", true))
             .logPrompts(boolEnvOrDefault("TESTSENTINEL_LOG_PROMPTS", false))
+            .phase2Enabled(boolEnvOrDefault("TESTSENTINEL_PHASE2_ENABLED", false))
+            .maxRiskLevel(riskLevelEnvOrDefault("TESTSENTINEL_MAX_RISK_LEVEL", ActionStep.RiskLevel.LOW))
             .build();
     }
 
@@ -77,6 +87,8 @@ public class TestSentinelConfig {
     public int getDomMaxChars() { return domMaxChars; }
     public boolean isEnabled() { return enabled; }
     public boolean isLogPrompts() { return logPrompts; }
+    public boolean isPhase2Enabled() { return phase2Enabled; }
+    public ActionStep.RiskLevel getMaxRiskLevel() { return maxRiskLevel; }
 
     // ── Builder ───────────────────────────────────────────────────────────────
 
@@ -92,6 +104,8 @@ public class TestSentinelConfig {
         private int domMaxChars = DEFAULT_DOM_MAX_CHARS;
         private boolean enabled = true;
         private boolean logPrompts = false;
+        private boolean phase2Enabled = false;
+        private ActionStep.RiskLevel maxRiskLevel = ActionStep.RiskLevel.LOW;
 
         public Builder apiKey(String apiKey) { this.apiKey = apiKey; return this; }
         public Builder model(String model) { this.model = model; return this; }
@@ -102,6 +116,8 @@ public class TestSentinelConfig {
         public Builder domMaxChars(int n) { this.domMaxChars = n; return this; }
         public Builder enabled(boolean b) { this.enabled = b; return this; }
         public Builder logPrompts(boolean b) { this.logPrompts = b; return this; }
+        public Builder phase2Enabled(boolean b) { this.phase2Enabled = b; return this; }
+        public Builder maxRiskLevel(ActionStep.RiskLevel level) { this.maxRiskLevel = level; return this; }
 
         public TestSentinelConfig build() {
             if (apiKey == null || apiKey.isBlank()) {
@@ -131,5 +147,12 @@ public class TestSentinelConfig {
         String val = System.getenv(key);
         if (val == null || val.isBlank()) return defaultValue;
         return "true".equalsIgnoreCase(val.trim()) || "1".equals(val.trim());
+    }
+
+    private static ActionStep.RiskLevel riskLevelEnvOrDefault(String key, ActionStep.RiskLevel defaultValue) {
+        String val = System.getenv(key);
+        if (val == null || val.isBlank()) return defaultValue;
+        try { return ActionStep.RiskLevel.valueOf(val.trim().toUpperCase()); }
+        catch (IllegalArgumentException e) { return defaultValue; }
     }
 }

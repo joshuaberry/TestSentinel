@@ -91,8 +91,11 @@ public class ClaudeApiGateway {
         root.put("model", config.getModel());
         root.put("max_tokens", config.getMaxTokens());
 
-        // System prompt
-        root.put("system", PromptEngine.SYSTEM_PROMPT);
+        // Use Phase 2 system prompt when phase2 is enabled, Phase 1 otherwise
+        String systemPrompt = config.isPhase2Enabled()
+            ? PromptEngine.SYSTEM_PROMPT_PHASE2
+            : PromptEngine.SYSTEM_PROMPT_PHASE1;
+        root.put("system", systemPrompt);
 
         // Messages array
         ArrayNode messages = root.putArray("messages");
@@ -194,9 +197,9 @@ public class ClaudeApiGateway {
                 insight.setConditionId(UUID.randomUUID().toString());
             }
 
-            log.info("TestSentinel: Analysis complete — category={}, confidence={:.2f}, transient={}, latency={}ms, tokens={}",
+            log.info("TestSentinel: Analysis complete — category={}, confidence={}%, transient={}, latency={}ms, tokens={}",
                 insight.getConditionCategory(),
-                insight.getConfidence(),
+                Math.round(insight.getConfidence() * 100),
                 insight.isTransient(),
                 latencyMs,
                 totalTokens);

@@ -1,13 +1,11 @@
 package com.testsentinel.example;
 
+import com.testsentinel.core.ActionPlanAdvisor;
 import com.testsentinel.core.TestSentinelClient;
 import com.testsentinel.core.TestSentinelConfig;
 import com.testsentinel.interceptor.TestSentinelListener;
 import com.testsentinel.model.InsightResponse;
-import org.openqa.selenium.By;
-import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.support.events.EventFiringDecorator;
@@ -23,6 +21,138 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+/**
+ * Base test class demonstrating Phase 1 and Phase 2 TestSentinel integration
+ * with TestNG + Selenium.
+ *
+ * Phase 2 adds: ActionPlanAdvisor usage, recommendation logging, report enrichment.
+ */
+public class BaseSeleniumTest {
+
+    protected static final Logger log = LoggerFactory.getLogger(BaseSeleniumTest.class);
+
+    protected static TestSentinelClient sentinel;
+    protected static ActionPlanAdvisor advisor;  // Phase 2 addition
+
+    private static final ThreadLocal<WebDriver> driverHolder = new ThreadLocal<>();
+    private static final ThreadLocal<TestSentinelListener> listenerHolder = new ThreadLocal<>();
+    private static final ThreadLocal<List<String>> stepHistoryHolder = new ThreadLocal<>();
+
+    @BeforeSuite
+    public void initTestSentinel() {
+        TestSentinelConfig config = TestSentinelConfig.fromEnvironment();
+        sentinel = new TestSentinelClient(config);
+        advisor = new ActionPlanAdvisor(config);   // Phase 2 addition
+        log.info("TestSentinel Phase 2 initialized — phase2={}, maxRisk={}",
+            config.isPhase2Enabled(), config.getMaxRiskLevel());
+    }
+
+    @AfterSuite
+    public void tearDownSentinel() {
+        log.info("TestSentinel suite complete");
+    }
+
+    @BeforeMethod
+    public void setUpDriver(Method method) {
+        ChromeOptions options = new ChromeOptions();
+        options.addArguments("--headless=new", "--no-sandbox", "--disable-dev-shm-usage");
+        options.setCapability("goog:loggingPrefs", Map.of("browser", "ALL"));
+
+        WebDriver rawDriver = new ChromeDriver(options);
+        rawDriver.manage().window().maximize();
+
+        String testName = method.getName();
+        String suiteName = method.getDeclaringClass().getSimpleName();
+        TestSentinelListener listener = new TestSentinelListener(sentinel, testName, suiteName);
+        WebDriver decoratedDriver = new EventFiringDecorator<>(listener).decorate(rawDriver);
+
+        driverHolder.set(decoratedDriver);
+        listenerHolder.set(listener);
+        stepHistoryHolder.set(new ArrayList<>());
+    }
+
+    @AfterMethod
+    public void tearDown(ITestResult result) {
+        TestSentinelListener listener = listenerHolder.get();
+        if (listener != null) {
+            InsightResponse insight = listener.getLastInsight();
+            if (insight != null && result.getStatus() == ITestResult.FAILURE) {
+                // Phase 1 attributes
+                result.setAttribute("testsentinel_insight", insight);
+                result.setAttribute("testsentinel_root_cause", insight.getRootCause());
+                result.setAttribute("testsentinel_category", insight.getConditionCategory());
+
+                // Phase 2: attach action plan summary to report
+                if (insight.hasActionPlan()) {
+                    result.setAttribute("testsentinel_plan_summary",
+                        insight.getActionPlan().getPlanSummary());
+                    result.setAttribute("testsentinel_action_count",
+                        insight.getActionPlan().size());
+                    // Build a text summary for embedding in failure message
+                    String planText = advisor.buildReportSummary(insight);
+                    result.setAttribute("testsentinel_recommendations", planText);
+                }
+            }
+        }
+
+        WebDriver driver = driverHolder.get();
+        if (driver != null) {
+            try { driver.quit(); } catch (Exception ignored) {}
+            driverHolder.remove();
+        }
+        listenerHolder.remove();
+        stepHistoryHolder.remove();
+    }
+
+    // ── Accessors ─────────────────────────────────────────────────────────────
+
+    protected WebDriver getDriver() { return driverHolder.get(); }
+    protected List<String> getSteps() { return stepHistoryHolder.get(); }
+
+    protected void recordStep(String description) {
+        List<String> steps = stepHistoryHolder.get();
+        if (steps != null) steps.add(description);
+    }
+
+    // ── Phase 2 explicit integration helper ───────────────────────────────────
+
+    /**
+     * Analyzes an exception, logs the full insight + action plan, and returns
+     * the InsightResponse. Use in catch blocks for targeted Phase 2 integration.
+     *
+     * <pre>
+     *   try {
+     *       recordStep("Click submit button");
+     *       driver.findElement(By.id("submit")).click();
+     *   } catch (NoSuchElementException e) {
+     *       InsightResponse insight = analyzeAndAdvise(e);
+     *
+     *       // Get the first safe recommended action
+     *       ActionStep first = advisor.getFirstExecutableStep(insight);
+     *       if (first != null) {
+     *           log.info("Recommended next action: [{}] {}", first.getActionType(), first.getDescription());
+     *       }
+     *
+     *       if (insight.isTransient()) {
+     *           Thread.sleep(2000); // retry...
+     *       } else {
+     *           String summary = advisor.buildReportSummary(insight);
+     *           throw new RuntimeException(insight.getRootCause() + summary, e);
+     *       }
+     *   }
+     * </pre>
+     */
+    protected InsightResponse analyzeAndAdvise(Exception e) {
+        InsightResponse insight = sentinel.analyzeException(
+            getDriver(), e, getSteps(),
+            Map.of("testName", "current test", "framework", "TestNG")
+        );
+        sentinel.logInsight(insight);           // Logs Phase 1 + Phase 2 details
+        advisor.logRecommendations(insight);    // Logs formatted action plan
+        return insight;
+    }
+}
 
 /**
  * Base test class demonstrating TestSentinel integration with TestNG + Selenium.

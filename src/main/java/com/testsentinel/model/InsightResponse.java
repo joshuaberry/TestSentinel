@@ -8,16 +8,13 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * The structured output from a Phase 1 TestSentinel analysis.
+ * The structured output from TestSentinel analysis.
  *
- * This object is returned to the test framework after Claude analyzes
- * the ConditionEvent. It contains:
- *  - A root cause explanation in plain English
- *  - A classified condition category
- *  - Confidence score
- *  - Evidence highlights (specific DOM/log observations that led to the diagnosis)
- *  - Whether the condition is likely transient
- *  - Cost and latency metrics for monitoring
+ * Phase 1 fields: root cause, category, confidence, evidence, transient flag, suggested outcome.
+ * Phase 2 adds:   actionPlan — an ordered list of recommended remediation steps with risk levels.
+ *
+ * The actionPlan field will be null when Phase 1 mode is active and populated
+ * when Phase 2 mode is active (controlled by TestSentinelConfig.isPhase2Enabled()).
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -34,6 +31,9 @@ public class InsightResponse {
     private long analysisLatencyMs;
     private Instant analyzedAt;
     private String rawClaudeResponse;    // Preserved for debugging
+
+    // ── Phase 2 Addition ──────────────────────────────────────────────────────
+    private ActionPlan actionPlan;        // Null in Phase 1 mode; populated in Phase 2 mode
 
     // ── Condition Categories ──────────────────────────────────────────────────
 
@@ -75,6 +75,9 @@ public class InsightResponse {
     public Instant getAnalyzedAt() { return analyzedAt; }
     public String getRawClaudeResponse() { return rawClaudeResponse; }
 
+    // ── Phase 2 getter ────────────────────────────────────────────────────────
+    public ActionPlan getActionPlan() { return actionPlan; }
+
     // ── Setters (used by Jackson deserialization) ─────────────────────────────
 
     public void setConditionId(String conditionId) { this.conditionId = conditionId; }
@@ -89,10 +92,16 @@ public class InsightResponse {
     public void setAnalyzedAt(Instant analyzedAt) { this.analyzedAt = analyzedAt; }
     public void setRawClaudeResponse(String rawClaudeResponse) { this.rawClaudeResponse = rawClaudeResponse; }
 
+    // ── Phase 2 setter ────────────────────────────────────────────────────────
+    public void setActionPlan(ActionPlan actionPlan) { this.actionPlan = actionPlan; }
+
     // ── Convenience ───────────────────────────────────────────────────────────
 
     public boolean isHighConfidence() { return confidence >= 0.80; }
     public boolean isLowConfidence() { return confidence < 0.50; }
+
+    /** Phase 2: true if an ActionPlan was returned with at least one step */
+    public boolean hasActionPlan() { return actionPlan != null && actionPlan.hasActions(); }
 
     @Override
     public String toString() {
