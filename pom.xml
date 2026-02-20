@@ -10,7 +10,7 @@
     <version>1.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>Google Search — TestSentinel BDD Demo (combined)</name>
+    <name>TestSentinel BDD Demo</name>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
@@ -20,7 +20,7 @@
         <selenium.version>4.18.1</selenium.version>
         <cucumber.version>7.15.0</cucumber.version>
         <testng.version>7.9.0</testng.version>
-        <webdrivermanager.version>6.1.0</webdrivermanager.version>
+        <webdrivermanager.version>6.3.3</webdrivermanager.version>
         <jackson.version>2.16.1</jackson.version>
         <okhttp.version>4.12.0</okhttp.version>
         <slf4j.version>2.0.12</slf4j.version>
