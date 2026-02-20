@@ -9,3 +9,10 @@ I had Claude "build" the first two plus some refinements.
 
 As of Feb 20th, I have tests working that will pull from a local repository of known conditions.  Next steps are to show 
 the details and turn those into local actions within the test framework to take corrective action.
+
+Features to add (there are a lot, this is partial list for now):
+
+1. Explicit logging messages on the root cause / insight and possible manual actions
+2. Ability to read an automatic action from the kb / API that maps to a method
+3. Cascading insights, e.g. on element not found, check for page timeout
+4. Interface to external agents / MCP
