@@ -41,6 +41,7 @@ public enum ActionType {
     CAPTURE_SCREENSHOT, // Take an additional diagnostic screenshot           LOW
 
     // ── Test Flow Control ────────────────────────────────────────────────────
+    SKIP_STEP,
     SKIP_TEST,          // Mark test as skipped with enriched reason          MEDIUM
     ABORT_SUITE,        // Abort the entire test suite                        HIGH
 
