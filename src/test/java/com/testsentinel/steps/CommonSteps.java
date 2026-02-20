@@ -66,10 +66,14 @@ public class CommonSteps {
     @And("TestSentinel is enabled with a valid API key")
     public void testSentinelIsEnabledWithAValidApiKey() {
         if (!ctx.isApiKeyPresent()) {
-            log.warn("CommonSteps: ANTHROPIC_API_KEY not set — sentinel scenarios will be skipped");
-        } else {
-            log.info("CommonSteps: API key present — TestSentinel Claude analysis enabled");
+            // This Background step only appears in features that genuinely require
+            // the Claude API (@claude-analysis, @navigation). Skip the scenario
+            // cleanly rather than letting it fail deep inside an assertion.
+            throw new org.testng.SkipException(
+                "ANTHROPIC_API_KEY not set — skipping API-dependent scenario. " +
+                "Run with -Dcucumber.filter.tags='not @sentinel' to exclude all API tests.");
         }
+        log.info("CommonSteps: API key present — TestSentinel Claude analysis enabled");
     }
 
     // ── Knowledge base ────────────────────────────────────────────────────────
@@ -96,7 +100,7 @@ public class CommonSteps {
                 .captureDOM(true)
                 .captureScreenshot(false)
                 .domMaxChars(10_000)
-                .enabled(ctx.isApiKeyPresent())
+                .apiEnabled(ctx.isApiKeyPresent())
                 .build();
 
             TestSentinelClient phase2Client = new TestSentinelClient(phase2Config);

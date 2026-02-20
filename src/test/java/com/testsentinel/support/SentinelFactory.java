@@ -67,7 +67,7 @@ public class SentinelFactory {
             .captureDOM(true)
             .captureScreenshot(false)      // Keep CI fast — screenshots slow DOM tests
             .domMaxChars(10_000)
-            .enabled(!DUMMY_KEY.equals(apiKey));
+            .apiEnabled(!DUMMY_KEY.equals(apiKey));
 
         if (kbPath != null) {
             builder.knowledgeBasePath(kbPath);

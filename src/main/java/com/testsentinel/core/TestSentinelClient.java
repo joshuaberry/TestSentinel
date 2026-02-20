@@ -76,11 +76,11 @@ public class TestSentinelClient {
         if (config.isKnowledgeBaseEnabled()) {
             this.knowledgeBase = new KnownConditionRepository(config.getKnowledgeBasePath());
             log.info("TestSentinel initialized — model={}, enabled={}, knowledgeBase={} patterns",
-                config.getModel(), config.isEnabled(), knowledgeBase.size());
+                config.getModel(), config.isApiEnabled(), knowledgeBase.size());
         } else {
             this.knowledgeBase = null;
             log.info("TestSentinel initialized — model={}, enabled={}, knowledgeBase=disabled",
-                config.getModel(), config.isEnabled());
+                config.getModel(), config.isApiEnabled());
         }
     }
 
@@ -103,11 +103,8 @@ public class TestSentinelClient {
             List<String> priorSteps,
             Map<String, String> testMeta
     ) {
-        if (!config.isEnabled()) {
-            log.debug("TestSentinel is disabled. Returning empty insight.");
-            return InsightResponse.error("TestSentinel is disabled", 0);
-        }
-
+        // No isApiEnabled guard here — analyzeEvent() handles that after the KB check.
+        // Guarding here would prevent KB resolution when no API key is configured.
         ConditionType conditionType = mapExceptionToConditionType(exception);
         log.info("TestSentinel: Analyzing {} condition — {}", conditionType, exception.getMessage());
 
@@ -125,10 +122,7 @@ public class TestSentinelClient {
             List<String> priorSteps,
             Map<String, String> testMeta
     ) {
-        if (!config.isEnabled()) {
-            return InsightResponse.error("TestSentinel is disabled", 0);
-        }
-
+        // No isApiEnabled guard here — analyzeEvent() handles that after the KB check.
         log.info("TestSentinel: Analyzing WRONG_PAGE condition — expected={}, actual={}",
             expectedUrl, safeGetUrl(driver));
 
@@ -144,11 +138,10 @@ public class TestSentinelClient {
      *   2. Claude API call             — 3-8s, ~1500-3500 tokens, confidence from model
      */
     public InsightResponse analyzeEvent(ConditionEvent event) {
-        if (!config.isEnabled()) {
-            return InsightResponse.error("TestSentinel is disabled", 0);
-        }
-
-        // ── Step 1: Local knowledge base ──────────────────────────────────────
+        // ── Step 1: Local knowledge base ─────────────────────────────────────
+        // The KB is always consulted regardless of the enabled flag.
+        // enabled=false means "no API key available" — it should gate Claude
+        // calls only, never local resolution which costs nothing.
         if (knowledgeBase != null) {
             long kbStart = System.currentTimeMillis();
             Optional<KnownCondition> match = knowledgeBase.findExactMatch(event);
@@ -164,6 +157,11 @@ public class TestSentinelClient {
         }
 
         // ── Step 2: Claude API call ───────────────────────────────────────────
+        // Only reached if no KB match was found.
+        if (!config.isApiEnabled()) {
+            log.debug("TestSentinel: No KB match and client is disabled (no API key) — returning error insight");
+            return InsightResponse.error("TestSentinel is disabled — no API key configured", 0);
+        }
         long startMs = System.currentTimeMillis();
         try {
             var userContent = promptEngine.buildUserContent(event);

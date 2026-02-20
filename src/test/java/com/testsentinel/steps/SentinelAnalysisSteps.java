@@ -54,7 +54,7 @@ public class SentinelAnalysisSteps {
         }
         ctx.syncInsightFromListener();
         if (ctx.getLastInsight() == null && ctx.getSentinel() != null) {
-            callSentinelForMissingElement("id=" + elementId);
+            callSentinelForMissingElement("id=" + elementId, elementId);
         }
     }
 
@@ -69,7 +69,7 @@ public class SentinelAnalysisSteps {
         }
         ctx.syncInsightFromListener();
         if (ctx.getLastInsight() == null && ctx.getSentinel() != null) {
-            callSentinelForMissingElement("css=" + cssSelector);
+            callSentinelForMissingElement("css=" + cssSelector, cssSelector);
         }
     }
 
@@ -77,7 +77,10 @@ public class SentinelAnalysisSteps {
 
     @Then("TestSentinel should have produced an insight")
     public void testSentinelShouldHaveProducedAnInsight() {
-        requireApiKey("@claude-analysis scenario");
+        // Do NOT call requireApiKey() here — this step is shared between
+        // @claude-analysis scenarios (API) and @knowledge-base scenarios (KB only).
+        // A KB-resolved insight is a valid insight. The @claude-analysis Background
+        // step handles skipping API-only features when no key is present.
         InsightResponse insight = ctx.getLastInsight();
         assertThat(insight)
             .as("TestSentinel should have produced an InsightResponse")
@@ -415,12 +418,13 @@ public class SentinelAnalysisSteps {
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
-    private void callSentinelForMissingElement(String locatorDescription) {
-        if (ctx.getSentinel() == null || !ctx.isApiKeyPresent()) return;
+    private void callSentinelForMissingElement(String locatorDescription, String locatorValue) {
+        if (ctx.getSentinel() == null) return;
         ConditionEvent event = ConditionEvent.builder()
             .conditionType(ConditionType.LOCATOR_NOT_FOUND)
             .message("Element not found: " + locatorDescription)
             .currentUrl(ctx.getDriver().getCurrentUrl())
+            .locatorValue(locatorValue)   // required for KB locatorValuePattern matching
             .build();
         ctx.setLastEvent(event);
         InsightResponse insight = ctx.getSentinel().analyzeEvent(event);
