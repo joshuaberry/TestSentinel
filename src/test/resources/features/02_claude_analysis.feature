@@ -1,10 +1,8 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # Feature: TestSentinel — Claude API Analysis
 #
-# These scenarios deliberately cause unexpected conditions so TestSentinel
-# invokes the Claude API for root cause analysis. The test verifies that
-# analysis was performed, the insight is structured correctly, and the
-# framework can make a decision based on the outcome.
+# These scenarios deliberately cause unexpected conditions on the-internet so
+# TestSentinel invokes the Claude API for root cause analysis.
 #
 # TestSentinel Capability Demonstrated:
 #   - Automatic exception interception via EventFiringDecorator
@@ -19,7 +17,7 @@
 Feature: TestSentinel Claude API Analysis
 
   Background:
-    Given the browser is open on the Google homepage
+    Given the browser is open on the login page
     And TestSentinel is enabled with a valid API key
 
   @missing-element
@@ -31,7 +29,7 @@ Feature: TestSentinel Claude API Analysis
     And the insight should suggest an outcome
 
   @missing-element
-  Scenario: TestSentinel correctly classifies a missing search button
+  Scenario: TestSentinel correctly classifies a missing submit button
     When the test attempts to find an element with css ".nonexistent-submit-button"
     Then TestSentinel should have produced an insight
     And the insight confidence should be greater than 0.5
@@ -48,7 +46,8 @@ Feature: TestSentinel Claude API Analysis
     And each action step should have a valid risk level
 
   @transient
-  Scenario: TestSentinel marks overlay-like conditions as transient
+  Scenario: TestSentinel analyzes a missing overlay element on the checkboxes page
+    Given the browser is open on the checkboxes page
     When the test attempts to find an element with css "#cookie-consent-accept"
     Then TestSentinel should have produced an insight
     And the insight should describe the root cause clearly

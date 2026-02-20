@@ -13,47 +13,46 @@
 #   - confidence == 1.0 for known patterns
 #   - analysisTokens == 0 for known patterns
 #   - recordResolution() promoting a Claude result to the KB
-#
 # ─────────────────────────────────────────────────────────────────────────────
 @sentinel @knowledge-base
 Feature: TestSentinel Knowledge Base Local Resolution
 
   Background:
-    Given the browser is open on the Google homepage
+    Given the browser is open on the login page
     And a knowledge base file is configured
 
   @local-resolution
   Scenario: A pre-loaded known pattern resolves without calling Claude
-    Given the knowledge base contains the pattern "google-missing-lucky-btn"
-    When the test attempts to find an element with css "#i-am-feeling-extra-lucky"
+    Given the knowledge base contains the pattern "internet-missing-sso-btn"
+    When the test attempts to find an element with css "#sso-login-button"
     Then TestSentinel should have produced an insight
     And the insight should have been resolved locally
-    And the insight resolved pattern should be "google-missing-lucky-btn"
+    And the insight resolved pattern should be "internet-missing-sso-btn"
     And the insight confidence should equal 1.0
     And the insight tokens used should be 0
 
   @local-resolution
   Scenario: Local resolution is faster than a Claude API call
-    Given the knowledge base contains the pattern "google-missing-lucky-btn"
-    When the test attempts to find an element with css "#i-am-feeling-extra-lucky"
+    Given the knowledge base contains the pattern "internet-missing-sso-btn"
+    When the test attempts to find an element with css "#sso-login-button"
     Then the analysis latency should be under 100 milliseconds
 
   @promote-pattern
   Scenario: A Claude result can be promoted to the knowledge base
     Given TestSentinel is enabled with a valid API key
-    And the knowledge base does not contain the pattern "google-promoted-test-pattern"
+    And the knowledge base does not contain the pattern "internet-promoted-test-pattern"
     When the test attempts to find an element with css "#element-that-does-not-exist-yet"
     Then TestSentinel should have produced an insight
-    When the engineer promotes the insight as pattern "google-promoted-test-pattern"
-    Then the knowledge base should contain the pattern "google-promoted-test-pattern"
+    When the engineer promotes the insight as pattern "internet-promoted-test-pattern"
+    Then the knowledge base should contain the pattern "internet-promoted-test-pattern"
 
   @local-resolution
   Scenario: Second occurrence of a promoted pattern resolves locally
     Given TestSentinel is enabled with a valid API key
-    And the knowledge base does not contain the pattern "google-reuse-test-pattern"
+    And the knowledge base does not contain the pattern "internet-reuse-test-pattern"
     When the test attempts to find an element with css "#reuse-pattern-sentinel-test"
     Then TestSentinel should have produced an insight
-    When the engineer promotes the insight as pattern "google-reuse-test-pattern"
+    When the engineer promotes the insight as pattern "internet-reuse-test-pattern"
     And the test attempts to find an element with css "#reuse-pattern-sentinel-test"
     Then the insight should have been resolved locally
     And the insight tokens used should be 0

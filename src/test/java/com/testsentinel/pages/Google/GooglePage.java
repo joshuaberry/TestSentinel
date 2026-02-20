@@ -1,4 +1,4 @@
-package com.testsentinel.pages;
+package com.testsentinel.pages.Google;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.Keys;
@@ -34,6 +34,7 @@ public class GooglePage {
     private static final By SEARCH_BAR_INPUT     = By.cssSelector("input[name='q']");
     private static final By SEARCH_RESULTS       = By.cssSelector("#search .g");
     private static final By ACCEPT_COOKIES_BTN   = By.cssSelector("#L2AGLb, #W0wltc, button[id*='accept']");
+    private static final By GOOGLE_SEARCH_BTN    = By.cssSelector("input[name='btnK'], button[aria-label='Google Search']");
 
     private final WebDriver driver;
     private final WebDriverWait wait;
@@ -103,10 +104,25 @@ public class GooglePage {
     }
 
     /**
-     * Submits the search by pressing Enter.
+     * Submits the search by clicking the "Google Search" button.
+     * Falls back to pressing Enter if the button is not visible (Google hides
+     * it until focus moves away from the search bar on some layouts).
      */
     public void submitSearch() {
-        getSearchBar().sendKeys(Keys.ENTER);
+        // Move focus away from the search bar so Google reveals the search buttons
+        try {
+            WebElement bar = getSearchBar();
+            bar.sendKeys(Keys.TAB);
+        } catch (Exception ignored) {}
+
+        try {
+            WebElement btn = wait.until(ExpectedConditions.elementToBeClickable(GOOGLE_SEARCH_BTN));
+            btn.click();
+            log.info("GooglePage: Search submitted via Google Search button");
+        } catch (Exception e) {
+            log.info("GooglePage: Search button not clickable — falling back to Enter key");
+            getSearchBar().sendKeys(Keys.ENTER);
+        }
         waitForResultsPage();
     }
 

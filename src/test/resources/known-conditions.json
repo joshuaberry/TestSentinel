@@ -1,40 +1,35 @@
-[
-  {
-    "id": "google-missing-lucky-btn",
-    "description": "Scenario attempts to find a non-standard Lucky button variant that does not exist on Google homepage. Known flake in regression suite.",
-    "enabled": true,
-    "urlPattern": "google.com",
-    "locatorValuePattern": "i-am-feeling-extra-lucky",
-    "conditionType": "LOCATOR_NOT_FOUND",
-    "minMatchSignals": 2,
-    "conditionCategory": "APPLICATION_BUG",
-    "rootCause": "The element '#i-am-feeling-extra-lucky' does not exist on the Google homepage. Google only renders standard 'I'm Feeling Lucky' variants and hides some in specific locales. This is a known test selector mismatch — the test should target '#gbqfba' or 'input[name=btnI]' instead.",
-    "evidenceHighlights": [
-      "URL contains google.com — correct page",
-      "Selector '#i-am-feeling-extra-lucky' has no match in current DOM",
-      "Standard 'I'm Feeling Lucky' button is present with different id"
-    ],
-    "isTransient": false,
-    "suggestedTestOutcome": "FAIL_WITH_CONTEXT",
-    "actionPlan": {
-      "planSummary": "Update the selector to target the correct Google button element",
-      "planConfidence": 0.97,
-      "requiresHuman": true,
-      "actions": [
-        {
-          "actionType": "SKIP_STEP",
-          "description": "Skip this interaction — the target element is a test artefact",
-          "confidence": 0.97,
-          "riskLevel": "LOW",
-          "rationale": "Known pattern: element never exists on google.com. Skipping prevents noisy failures.",
-          "requiresVerification": false,
-          "parameters": {}
-        }
-      ]
-    },
-    "hitCount": 0,
-    "addedBy": "demo-seed",
-    "addedAt": "2026-02-19T00:00:00Z",
-    "notes": "Seed pattern for the @local-resolution Cucumber scenarios. Do not delete."
-  }
-]
+{
+  "conditions": [
+    {
+      "id": "internet-missing-sso-btn",
+      "description": "SSO login button is not present on the-internet login page — this site uses form auth only",
+      "enabled": true,
+      "urlPattern": "the-internet.herokuapp.com/login",
+      "conditionType": "LOCATOR_NOT_FOUND",
+      "locatorValuePattern": "#sso-login-button",
+      "minMatchSignals": 2,
+      "conditionCategory": "APPLICATION_BUG",
+      "rootCause": "The element #sso-login-button does not exist on this page. The-internet uses standard form authentication only — there is no SSO integration.",
+      "suggestedTestOutcome": "FAIL_WITH_CONTEXT",
+      "isTransient": false,
+      "actionPlan": {
+        "planSummary": "Remove the SSO login step and use the standard username/password form instead",
+        "planConfidence": 0.95,
+        "requiresHuman": false,
+        "actions": [
+          {
+            "actionType": "SKIP_STEP",
+            "description": "Skip the SSO login attempt — this page does not support SSO",
+            "confidence": 0.95,
+            "riskLevel": "LOW",
+            "rationale": "The-internet only supports form-based authentication",
+            "requiresVerification": false
+          }
+        ]
+      },
+      "addedBy": "seed-data",
+      "addedAt": "2026-02-20T00:00:00Z",
+      "hitCount": 0
+    }
+  ]
+}

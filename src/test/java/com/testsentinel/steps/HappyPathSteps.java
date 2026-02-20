@@ -1,7 +1,7 @@
 package com.testsentinel.steps;
 
 import com.testsentinel.context.ScenarioContext;
-import com.testsentinel.pages.GooglePage;
+import com.testsentinel.pages.InternetPage;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -12,9 +12,9 @@ import org.slf4j.LoggerFactory;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Step definitions for Feature 01: Google Search Happy Path.
+ * Step definitions for Feature 01: Form Authentication Happy Path.
  *
- * These steps exercise the normal browser interaction path.
+ * Exercises normal login/logout flows against the-internet.herokuapp.com/login.
  * TestSentinel is present and observing but should not be triggered.
  */
 public class HappyPathSteps {
@@ -29,61 +29,58 @@ public class HappyPathSteps {
 
     // ── Preconditions ─────────────────────────────────────────────────────────
 
-    @Given("the search bar is visible")
-    public void theSearchBarIsVisible() {
-        GooglePage page = new GooglePage(ctx.getDriver());
-        assertThat(page.isSearchBarVisible())
-            .as("Google search bar should be visible on the homepage")
+    @Given("the login page is loaded")
+    public void theLoginPageIsLoaded() {
+        InternetPage page = new InternetPage(ctx.getDriver());
+        assertThat(page.isLoginPageLoaded())
+            .as("Login page username field should be visible")
             .isTrue();
-        log.info("HappyPathSteps: Search bar confirmed visible");
+        log.info("HappyPathSteps: Login page confirmed loaded");
     }
 
     // ── Actions ───────────────────────────────────────────────────────────────
 
-    @When("the user types {string} into the search bar")
-    public void theUserTypesIntoTheSearchBar(String searchTerm) {
-        GooglePage page = new GooglePage(ctx.getDriver());
-        page.typeInSearchBar(searchTerm);
-        log.info("HappyPathSteps: Typed '{}' into search bar", searchTerm);
+    @When("the user enters username {string} and password {string}")
+    public void theUserEntersUsernameAndPassword(String username, String password) {
+        InternetPage page = new InternetPage(ctx.getDriver());
+        page.enterUsername(username);
+        page.enterPassword(password);
+        log.info("HappyPathSteps: Entered credentials for '{}'", username);
     }
 
-    @And("the user submits the search")
-    public void theUserSubmitsTheSearch() {
-        GooglePage page = new GooglePage(ctx.getDriver());
-        page.submitSearch();
-        log.info("HappyPathSteps: Search submitted — title is now '{}'",
-            ctx.getDriver().getTitle());
+    @And("the user clicks the login button")
+    public void theUserClicksTheLoginButton() {
+        InternetPage page = new InternetPage(ctx.getDriver());
+        page.clickLoginButton();
+        log.info("HappyPathSteps: Login button clicked");
+    }
+
+    @When("the user clicks the logout button")
+    public void theUserClicksTheLogoutButton() {
+        InternetPage page = new InternetPage(ctx.getDriver());
+        page.clickLogout();
+        log.info("HappyPathSteps: Logout button clicked");
     }
 
     // ── Assertions ────────────────────────────────────────────────────────────
 
-    @Then("the results page title contains {string}")
-    public void theResultsPageTitleContains(String expectedFragment) {
-        String title = ctx.getDriver().getTitle();
-        assertThat(title)
-            .as("Page title should contain the search term '%s'", expectedFragment)
-            .containsIgnoringCase(expectedFragment);
-        log.info("HappyPathSteps: Title '{}' contains '{}'", title, expectedFragment);
+    @Then("the flash message indicates a successful login")
+    public void theFlashMessageIndicatesASuccessfulLogin() {
+        InternetPage page = new InternetPage(ctx.getDriver());
+        assertThat(page.isFlashMessageSuccess())
+            .as("Flash message should confirm successful login")
+            .isTrue();
+        log.info("HappyPathSteps: Flash message confirmed success — '{}'",
+            page.getFlashMessageText().trim());
     }
 
-    @And("at least one result is displayed")
-    public void atLeastOneResultIsDisplayed() {
-        GooglePage page = new GooglePage(ctx.getDriver());
-        int count = page.getSearchResultCount();
-        assertThat(count)
-            .as("At least one search result should be displayed")
-            .isGreaterThan(0);
-        log.info("HappyPathSteps: {} search results displayed", count);
-    }
-
-    @Then("the search bar contains the text {string}")
-    public void theSearchBarContainsTheText(String expectedText) {
-        GooglePage page = new GooglePage(ctx.getDriver());
-        String actual = page.getSearchBarText();
-        assertThat(actual)
-            .as("Search bar should contain '%s'", expectedText)
-            .isEqualTo(expectedText);
-        log.info("HappyPathSteps: Search bar text is '{}'", actual);
+    @And("the secure area heading is visible")
+    public void theSecureAreaHeadingIsVisible() {
+        InternetPage page = new InternetPage(ctx.getDriver());
+        assertThat(page.isSecurePageLoaded())
+            .as("Secure area logout button should be visible after login")
+            .isTrue();
+        log.info("HappyPathSteps: Secure area loaded — '{}'", page.getSecureHeadingText());
     }
 
     @Then("the page title is {string}")
@@ -97,7 +94,6 @@ public class HappyPathSteps {
 
     @And("no TestSentinel analysis was triggered")
     public void noTestSentinelAnalysisWasTriggered() {
-        // Sync listener state first
         ctx.syncInsightFromListener();
         assertThat(ctx.getLastInsight())
             .as("No TestSentinel insight should have been produced on the happy path")

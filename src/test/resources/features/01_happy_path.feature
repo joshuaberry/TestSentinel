@@ -1,49 +1,47 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# Feature: Google Search — Happy Path
+# Feature: Form Authentication — Happy Path
 #
-# These scenarios exercise the normal, successful path through the Google
-# homepage. TestSentinel is initialized and observing, but no analysis is
-# triggered because no unexpected conditions occur.
+# These scenarios exercise the normal, successful path through the login page
+# at https://the-internet.herokuapp.com/login.
+# TestSentinel is initialized and observing, but no analysis is triggered
+# because no unexpected conditions occur.
 #
 # TestSentinel Capability Demonstrated: Transparent observation.
 # The presence of TestSentinel has zero impact on passing tests.
 # ─────────────────────────────────────────────────────────────────────────────
 @smoke @happy-path
-Feature: Google Search Happy Path
+Feature: Form Authentication Happy Path
 
   Background:
-    Given the browser is open on the Google homepage
+    Given the browser is open on the login page
 
-  @search
-  Scenario: User searches for a term and sees results
-    Given the search bar is visible
-    When the user types "Selenium WebDriver" into the search bar
-    And the user submits the search
-    Then the results page title contains "Selenium WebDriver"
-    And at least one result is displayed
-
-  @search
-  Scenario: Search bar accepts input without errors
-    Given the search bar is visible
-    When the user types "open source testing tools" into the search bar
-    Then the search bar contains the text "open source testing tools"
+  @login
+  Scenario: User logs in with valid credentials and sees the secure area
+    Given the login page is loaded
+    When the user enters username "tomsmith" and password "SuperSecretPassword!"
+    And the user clicks the login button
+    Then the flash message indicates a successful login
+    And the secure area heading is visible
     And no TestSentinel analysis was triggered
 
-  @navigation
-  Scenario: Google homepage loads with the expected title
-    Then the page title is "Google"
-    And the search bar is visible
+  @login
+  Scenario: Login page loads with the expected title
+    Then the page title is "The Internet"
+    And the login page is loaded
     And no TestSentinel analysis was triggered
 
-  @search
-  Scenario Outline: Searching for different terms always returns results
-    Given the search bar is visible
-    When the user types "<term>" into the search bar
-    And the user submits the search
-    Then the results page title contains "<term>"
+  @login
+  Scenario: Login form accepts username input without errors
+    Given the login page is loaded
+    When the user enters username "tomsmith" and password "SuperSecretPassword!"
+    Then the login page is loaded
+    And no TestSentinel analysis was triggered
 
-    Examples:
-      | term               |
-      | Cucumber BDD       |
-      | TestNG framework   |
-      | Java Selenium 4    |
+  @login
+  Scenario: User logs out after a successful login
+    Given the login page is loaded
+    When the user enters username "tomsmith" and password "SuperSecretPassword!"
+    And the user clicks the login button
+    Then the flash message indicates a successful login
+    When the user clicks the logout button
+    Then the login page is loaded
