@@ -1,34 +1,48 @@
-[
-    {
-      "id": "internet-missing-sso-btn",
-      "description": "SSO login button is not present on the-internet login page — this site uses form auth only",
-      "enabled": true,
-      "urlPattern": "the-internet.herokuapp.com/login",
-      "conditionType": "LOCATOR_NOT_FOUND",
-      "locatorValuePattern": "#sso-login-button",
-      "minMatchSignals": 2,
-      "conditionCategory": "APPLICATION_BUG",
-      "rootCause": "The element #sso-login-button does not exist on this page. The-internet uses standard form authentication only — there is no SSO integration.",
-      "suggestedTestOutcome": "FAIL_WITH_CONTEXT",
-      "isTransient": false,
-      "actionPlan": {
-        "planSummary": "Remove the SSO login step and use the standard username/password form instead",
-        "planConfidence": 0.95,
-        "requiresHuman": false,
-        "actions": [
-          {
-            "actionType": "SKIP_STEP",
-            "description": "Skip the SSO login attempt — this page does not support SSO",
-            "confidence": 0.95,
-            "riskLevel": "LOW",
-            "rationale": "The-internet only supports form-based authentication",
-            "requiresVerification": false
-          }
-        ]
-      },
-      "addedBy": "seed-data",
-      "addedAt": "2026-02-20T00:00:00Z",
-      "hitCount": 0
-    }
-  ]
-
+[ {
+  "id" : "internet-missing-sso-btn",
+  "description" : "SSO login button is not present on the-internet login page — this site uses form auth only",
+  "enabled" : true,
+  "urlPattern" : "the-internet.herokuapp.com/login",
+  "locatorValuePattern" : "#sso-login-button",
+  "conditionType" : "LOCATOR_NOT_FOUND",
+  "minMatchSignals" : 2,
+  "conditionCategory" : "APPLICATION_BUG",
+  "rootCause" : "The element #sso-login-button does not exist on this page. The-internet uses standard form authentication only — there is no SSO integration.",
+  "suggestedTestOutcome" : "FAIL_WITH_CONTEXT",
+  "actionPlan" : {
+    "actions" : [ {
+      "actionType" : "SKIP_STEP",
+      "description" : "Skip the SSO login attempt — this page does not support SSO",
+      "confidence" : 0.95,
+      "riskLevel" : "LOW",
+      "rationale" : "The-internet only supports form-based authentication",
+      "requiresVerification" : false,
+      "highRisk" : false,
+      "lowRisk" : true,
+      "mediumRisk" : false,
+      "highConfidence" : true
+    } ],
+    "planSummary" : "Remove the SSO login step and use the standard username/password form instead",
+    "planConfidence" : 0.95,
+    "requiresHuman" : false,
+    "highRiskActions" : [ ],
+    "mediumRiskActions" : [ ],
+    "lowRiskActions" : [ {
+      "actionType" : "SKIP_STEP",
+      "description" : "Skip the SSO login attempt — this page does not support SSO",
+      "confidence" : 0.95,
+      "riskLevel" : "LOW",
+      "rationale" : "The-internet only supports form-based authentication",
+      "requiresVerification" : false,
+      "highRisk" : false,
+      "lowRisk" : true,
+      "mediumRisk" : false,
+      "highConfidence" : true
+    } ]
+  },
+  "hitCount" : 1,
+  "lastHit" : "2026-02-20T19:07:17.925553900Z",
+  "addedBy" : "seed-data",
+  "addedAt" : "2026-02-20T00:00:00Z",
+  "transient" : false
+} ]
