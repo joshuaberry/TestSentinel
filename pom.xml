@@ -1,149 +1,182 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.testsentinel</groupId>
-    <artifactId>testsentinel-core</artifactId>
+    <artifactId>google-sentinel-tests</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>TestSentinel Core</name>
-    <description>AI-powered test condition analysis with local knowledge base resolution</description>
+    <name>Google Search — TestSentinel BDD Demo (combined)</name>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
         <selenium.version>4.18.1</selenium.version>
+        <cucumber.version>7.15.0</cucumber.version>
+        <testng.version>7.9.0</testng.version>
+        <webdrivermanager.version>6.1.0</webdrivermanager.version>
         <jackson.version>2.16.1</jackson.version>
         <okhttp.version>4.12.0</okhttp.version>
         <slf4j.version>2.0.12</slf4j.version>
-        <testng.version>7.9.0</testng.version>
-        <junit.version>5.10.2</junit.version>
-        <!-- ── For Unit Tests ──────────────────────────────────────────────── -->
-        <cucumber.version>7.15.0</cucumber.version>
-        <webdrivermanager.version>6.1.0</webdrivermanager.version>
-        <cucumber.reports.plugin>io.cucumber:cucumber-reporting:5.7.5</cucumber.reports.plugin>
-
     </properties>
 
     <dependencies>
 
-        <!-- Selenium -->
+        <!-- ══════════════════════════════════════════════════════════════════
+             compile scope — needed to build src/main/java (TestSentinel core)
+             ══════════════════════════════════════════════════════════════════ -->
+
+        <!-- Selenium: used by TestSentinel's ContextCollector and WebDriverListener -->
         <dependency>
             <groupId>org.seleniumhq.selenium</groupId>
             <artifactId>selenium-java</artifactId>
             <version>${selenium.version}</version>
+            <scope>compile</scope>
         </dependency>
 
-        <!-- WebDriverManager — auto-downloads ChromeDriver -->
-        <dependency>
-            <groupId>io.github.bonigarcia</groupId>
-            <artifactId>webdrivermanager</artifactId>
-            <version>${webdrivermanager.version}</version>
-        </dependency>
-
-        <!-- ── Cucumber + TestNG ─────────────────────────────────────────── -->
-        <dependency>
-            <groupId>io.cucumber</groupId>
-            <artifactId>cucumber-java</artifactId>
-            <version>${cucumber.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.cucumber</groupId>
-            <artifactId>cucumber-testng</artifactId>
-            <version>${cucumber.version}</version>
-        </dependency>
-        <!-- PicoContainer — enables constructor injection of ScenarioContext into step classes -->
-        <dependency>
-            <groupId>io.cucumber</groupId>
-            <artifactId>cucumber-picocontainer</artifactId>
-            <version>${cucumber.version}</version>
-        </dependency>
-
-        <!-- ── Assertions ───────────────────────────────────────────────── -->
-        <dependency>
-            <groupId>org.assertj</groupId>
-            <artifactId>assertj-core</artifactId>
-            <version>3.27.7</version>
-        </dependency>
-
-        <!-- HTTP Client for Anthropic API -->
+        <!-- OkHttp: TestSentinel's HTTP client for the Anthropic API -->
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
             <version>${okhttp.version}</version>
+            <scope>compile</scope>
         </dependency>
 
-        <!-- JSON serialization -->
+        <!-- Jackson: JSON serialisation of ConditionEvent and InsightResponse -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
             <version>${jackson.version}</version>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
             <version>${jackson.version}</version>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
             <version>${jackson.version}</version>
+            <scope>compile</scope>
         </dependency>
 
-        <!-- Logging -->
+        <!-- SLF4J API: used throughout TestSentinel for logging -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>${slf4j.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <version>${slf4j.version}</version>
+            <scope>compile</scope>
         </dependency>
 
-        <!-- Test dependencies -->
+        <!-- ══════════════════════════════════════════════════════════════════
+             test scope — only needed to compile and run src/test/java
+             ══════════════════════════════════════════════════════════════════ -->
+
+        <!-- WebDriverManager: downloads ChromeDriver at test runtime -->
         <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <version>${junit.version}</version>
+            <groupId>io.github.bonigarcia</groupId>
+            <artifactId>webdrivermanager</artifactId>
+            <version>${webdrivermanager.version}</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- Cucumber step annotation processor -->
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-java</artifactId>
+            <version>${cucumber.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Cucumber TestNG bridge: provides AbstractTestNGCucumberTests -->
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-testng</artifactId>
+            <version>${cucumber.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- PicoContainer: constructor-injects ScenarioContext into step classes -->
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-picocontainer</artifactId>
+            <version>${cucumber.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- TestNG: runner and SkipException -->
         <dependency>
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>
-            <version>7.9.0</version>
-            <scope>compile</scope>
+            <version>${testng.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+
+        <!-- AssertJ: fluent assertions in step definitions -->
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>3.27.7</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Logback: SLF4J implementation for test output -->
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>1.5.13</version>
+            <scope>test</scope>
         </dependency>
 
     </dependencies>
 
     <build>
         <plugins>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.12.1</version>
+                <configuration>
+                    <source>17</source>
+                    <target>17</target>
+                    <encoding>UTF-8</encoding>
+                </configuration>
             </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.5</version>
                 <configuration>
+                    <!--
+                        Surefire matches <include> patterns against source file names (.java),
+                        not compiled class files. CucumberRunner.java is the sole TestNG
+                        entry point; Cucumber discovers all scenarios from it.
+                    -->
                     <includes>
                         <include>**/CucumberRunner.java</include>
                     </includes>
+                    <argLine>-ea -Dfile.encoding=UTF-8</argLine>
                     <systemPropertyVariables>
-                        <!-- Forward env-sourced API key into the JVM -->
-                        <!--suppress UnresolvedMavenProperty -->
                         <ANTHROPIC_API_KEY>${env.ANTHROPIC_API_KEY}</ANTHROPIC_API_KEY>
+                        <headless>${headless}</headless>
+                        <phase2.enabled>${phase2.enabled}</phase2.enabled>
+                        <kb.path>${kb.path}</kb.path>
+                        <cucumber.filter.tags>${cucumber.filter.tags}</cucumber.filter.tags>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>
+
         </plugins>
     </build>
 
