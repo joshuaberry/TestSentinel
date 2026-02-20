@@ -194,15 +194,19 @@ public class SentinelAnalysisSteps {
 
     @Given("the knowledge base contains the pattern {string}")
     public void theKnowledgeBaseContainsThePattern(String patternId) {
-        assertThat(ctx.getSentinel().knowledgeBaseSize())
-            .as("KB should be loaded and contain at least one pattern (expected '%s')", patternId)
-            .isGreaterThan(0);
-        log.info("SentinelAnalysisSteps: KB has {} pattern(s)", ctx.getSentinel().knowledgeBaseSize());
+        assertThat(ctx.getSentinel().hasPattern(patternId))
+            .as("KB should contain pattern '%s'. Check known-conditions.json.", patternId)
+            .isTrue();
+        log.info("SentinelAnalysisSteps: KB confirmed to contain pattern '{}'", patternId);
     }
 
     @And("the knowledge base does not contain the pattern {string}")
     public void theKnowledgeBaseDoesNotContainThePattern(String patternId) {
-        log.info("SentinelAnalysisSteps: Assuming pattern '{}' is not yet in KB", patternId);
+        assertThat(ctx.getSentinel().hasPattern(patternId))
+            .as("KB should NOT contain pattern '%s' at the start of this scenario. "
+              + "Delete the entry from known-conditions.json and re-run.", patternId)
+            .isFalse();
+        log.info("SentinelAnalysisSteps: Confirmed pattern '{}' is absent from KB", patternId);
     }
 
     @And("the insight should have been resolved locally")

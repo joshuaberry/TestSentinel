@@ -258,6 +258,16 @@ public class TestSentinelClient {
         return knowledgeBase != null ? knowledgeBase.size() : 0;
     }
 
+    /**
+     * Returns true if the knowledge base contains a pattern with the given id.
+     * Returns false if the knowledge base is not configured or the id is not found.
+     */
+    public boolean hasPattern(String id) {
+        if (knowledgeBase == null || id == null) return false;
+        return knowledgeBase.findAll().stream()
+            .anyMatch(kc -> id.equals(kc.getId()));
+    }
+
     // ── Convenience Logging ───────────────────────────────────────────────────
 
     /**
