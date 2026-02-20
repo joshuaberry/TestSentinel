@@ -1,5 +1,4 @@
-{
-  "conditions": [
+[
     {
       "id": "internet-missing-sso-btn",
       "description": "SSO login button is not present on the-internet login page — this site uses form auth only",
@@ -32,4 +31,4 @@
       "hitCount": 0
     }
   ]
-}
+
