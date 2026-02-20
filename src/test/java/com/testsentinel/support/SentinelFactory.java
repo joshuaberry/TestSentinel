@@ -111,10 +111,14 @@ public class SentinelFactory {
     }
 
     private static boolean resolvePhase2() {
+        // Phase 2 is enabled by default. Override with -Dphase2.enabled=false
+        // or TESTSENTINEL_PHASE2_ENABLED=false to disable.
         String fromProp = System.getProperty("phase2.enabled");
         if (fromProp != null) return "true".equalsIgnoreCase(fromProp);
 
         String fromEnv = System.getenv("TESTSENTINEL_PHASE2_ENABLED");
-        return "true".equalsIgnoreCase(fromEnv);
+        if (fromEnv != null) return "true".equalsIgnoreCase(fromEnv);
+
+        return true; // default on
     }
 }
