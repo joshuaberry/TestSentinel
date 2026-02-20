@@ -40,7 +40,7 @@ import org.testng.annotations.DataProvider;
  */
 @CucumberOptions(
     features = "src/test/resources/features",
-    glue     = "com.testsentinel.steps",   // Scans com.example.steps, com.example.hooks, com.example.context
+    glue     = { "com.testsentinel.steps", "com.testsentinel.hooks"},
     plugin   = {
         "pretty",
         "html:target/cucumber-reports/cucumber-pretty.html",
