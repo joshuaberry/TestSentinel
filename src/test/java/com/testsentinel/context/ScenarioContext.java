@@ -1,4 +1,4 @@
-package com.example.context;
+package com.testsentinel.context;
 
 import com.testsentinel.core.ActionPlanAdvisor;
 import com.testsentinel.core.TestSentinelClient;

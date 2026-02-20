@@ -1,8 +1,8 @@
-package com.example.hooks;
+package com.testsentinel.hooks;
 
-import com.example.context.ScenarioContext;
-import com.example.support.DriverFactory;
-import com.example.support.SentinelFactory;
+import com.testsentinel.context.ScenarioContext;
+import com.testsentinel.support.DriverFactory;
+import com.testsentinel.support.SentinelFactory;
 import com.testsentinel.core.ActionPlanAdvisor;
 import com.testsentinel.core.TestSentinelClient;
 import com.testsentinel.core.TestSentinelConfig;

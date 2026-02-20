@@ -1,4 +1,4 @@
-package com.example.support;
+package com.testsentinel.support;
 
 import com.testsentinel.interceptor.TestSentinelListener;
 import io.github.bonigarcia.wdm.WebDriverManager;

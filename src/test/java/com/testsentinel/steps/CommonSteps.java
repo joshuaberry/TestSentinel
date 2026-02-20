@@ -1,8 +1,7 @@
-package com.example.steps;
+package com.testsentinel.steps;
 
-import com.example.context.ScenarioContext;
-import com.example.pages.GooglePage;
-import com.example.support.SentinelFactory;
+import com.testsentinel.context.ScenarioContext;
+import com.testsentinel.pages.GooglePage;
 import com.testsentinel.core.TestSentinelClient;
 import com.testsentinel.core.TestSentinelConfig;
 import com.testsentinel.interceptor.TestSentinelListener;
@@ -12,9 +11,6 @@ import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Collections;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

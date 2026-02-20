@@ -1,7 +1,7 @@
-package com.example.steps;
+package com.testsentinel.steps;
 
-import com.example.context.ScenarioContext;
-import com.example.pages.GooglePage;
+import com.testsentinel.context.ScenarioContext;
+import com.testsentinel.pages.GooglePage;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;

@@ -34,7 +34,7 @@
     </logger>
 
     <!-- Our test project -->
-    <logger name="com.example" level="INFO" additivity="false">
+    <logger name="com.testsentinel" level="INFO" additivity="false">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE"/>
     </logger>
