@@ -523,7 +523,7 @@ public class SentinelAnalysisSteps {
 
     private void requireApiKey(String context) {
         if (!ctx.isApiKeyPresent()) {
-            throw new org.opentest4j.TestAbortedException(
+            throw new org.testng.SkipException(
                 "ANTHROPIC_API_KEY not set — skipping " + context + ". " +
                 "Run with -Dcucumber.filter.tags=\"not @sentinel\" to exclude API-dependent tests.");
         }
