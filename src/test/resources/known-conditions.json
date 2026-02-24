@@ -25,8 +25,6 @@
     "planSummary" : "Remove the SSO login step and use the standard username/password form instead",
     "planConfidence" : 0.95,
     "requiresHuman" : false,
-    "highRiskActions" : [ ],
-    "mediumRiskActions" : [ ],
     "lowRiskActions" : [ {
       "actionType" : "SKIP_STEP",
       "description" : "Skip the SSO login attempt — this page does not support SSO",
@@ -38,10 +36,12 @@
       "lowRisk" : true,
       "mediumRisk" : false,
       "highConfidence" : true
-    } ]
+    } ],
+    "mediumRiskActions" : [ ],
+    "highRiskActions" : [ ]
   },
-  "hitCount" : 1,
-  "lastHit" : "2026-02-20T19:07:17.925553900Z",
+  "hitCount" : 4,
+  "lastHit" : "2026-02-23T17:15:13.334205500Z",
   "addedBy" : "seed-data",
   "addedAt" : "2026-02-20T00:00:00Z",
   "transient" : false

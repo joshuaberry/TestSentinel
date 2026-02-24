@@ -16,3 +16,5 @@ Features to add (there are a lot, this is partial list for now):
 2. Ability to read an automatic action from the kb / API that maps to a method
 3. Cascading insights, e.g. on element not found, check for page timeout
 4. Interface to external agents / MCP
+5. A server based option residing within the firewall to store the knowledge repository and communicate with other services
+6. 

@@ -18,18 +18,17 @@
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <!-- Production dependencies (compile scope) -->
+        <!-- Dependency versions -->
         <selenium.version>4.18.1</selenium.version>
         <okhttp.version>4.12.0</okhttp.version>
         <jackson.version>2.16.1</jackson.version>
         <slf4j.version>2.0.12</slf4j.version>
-
-        <!-- Test dependencies (test scope) -->
-        <cucumber.version>7.15.0</cucumber.version>
-        <testng.version>7.9.0</testng.version>
-        <webdrivermanager.version>6.3.3</webdrivermanager.version>
-        <assertj.version>3.27.7</assertj.version>
         <logback.version>1.5.13</logback.version>
+        <reflections.version>0.10.2</reflections.version>
+        <testng.version>7.9.0</testng.version>
+        <cucumber.version>7.15.0</cucumber.version>
+        <assertj.version>3.27.7</assertj.version>
+        <webdrivermanager.version>6.3.3</webdrivermanager.version>
 
         <!-- Plugin versions -->
         <maven-compiler-plugin.version>3.12.1</maven-compiler-plugin.version>
@@ -39,10 +38,14 @@
     <dependencies>
 
         <!-- ══════════════════════════════════════════════════════════════════
-             compile scope — needed to build src/main/java (TestSentinel core)
+             compile scope
+             Required by src/main/java (TestSentinel framework core) AND
+             src/test/java (BDD step definitions, hooks, support classes).
+             TestSentinel is a test automation framework so Selenium, TestNG,
+             Cucumber etc. are first-class framework dependencies, not test-only.
              ══════════════════════════════════════════════════════════════════ -->
 
-        <!-- Selenium: used by TestSentinel's ContextCollector and WebDriverListener -->
+        <!-- Selenium: ContextCollector, TestSentinelListener, executor handlers -->
         <dependency>
             <groupId>org.seleniumhq.selenium</groupId>
             <artifactId>selenium-java</artifactId>
@@ -50,7 +53,7 @@
             <scope>compile</scope>
         </dependency>
 
-        <!-- OkHttp: TestSentinel's HTTP client for the Anthropic API -->
+        <!-- OkHttp: ClaudeApiGateway HTTP client -->
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
@@ -58,7 +61,7 @@
             <scope>compile</scope>
         </dependency>
 
-        <!-- Jackson: JSON serialisation of ConditionEvent and InsightResponse -->
+        <!-- Jackson: ConditionEvent / InsightResponse / KnownCondition serialisation -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
@@ -78,7 +81,7 @@
             <scope>compile</scope>
         </dependency>
 
-        <!-- SLF4J API: used throughout TestSentinel for logging -->
+        <!-- SLF4J API: logging interface used throughout the framework -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
@@ -86,64 +89,75 @@
             <scope>compile</scope>
         </dependency>
 
+        <!-- Logback: SLF4J runtime implementation -->
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${logback.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <!-- Reflections: classpath scanning for @HandlesAction / @ChecksCondition discovery -->
+        <dependency>
+            <groupId>org.reflections</groupId>
+            <artifactId>reflections</artifactId>
+            <version>${reflections.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <!-- TestNG: test runner, SkipException used in SkipTestHandler -->
+        <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <version>${testng.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <!-- Cucumber: step annotations, TestNG bridge, PicoContainer DI -->
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-java</artifactId>
+            <version>${cucumber.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-testng</artifactId>
+            <version>${cucumber.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-picocontainer</artifactId>
+            <version>${cucumber.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <!-- AssertJ: fluent assertions used in step definitions -->
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>${assertj.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
         <!-- ══════════════════════════════════════════════════════════════════
-             test scope — only needed to compile and run src/test/java
+             test scope
+             Only needed at test execution time, not part of the framework API.
              ══════════════════════════════════════════════════════════════════ -->
 
-        <!-- WebDriverManager: downloads ChromeDriver at test runtime -->
+        <!-- WebDriverManager: downloads ChromeDriver at test runtime only -->
         <dependency>
             <groupId>io.github.bonigarcia</groupId>
             <artifactId>webdrivermanager</artifactId>
             <version>${webdrivermanager.version}</version>
             <scope>test</scope>
         </dependency>
-
-        <!-- Cucumber step annotation processor -->
         <dependency>
-            <groupId>io.cucumber</groupId>
-            <artifactId>cucumber-java</artifactId>
-            <version>${cucumber.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- Cucumber TestNG bridge: provides AbstractTestNGCucumberTests -->
-        <dependency>
-            <groupId>io.cucumber</groupId>
-            <artifactId>cucumber-testng</artifactId>
-            <version>${cucumber.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- PicoContainer: constructor-injects ScenarioContext into step classes -->
-        <dependency>
-            <groupId>io.cucumber</groupId>
-            <artifactId>cucumber-picocontainer</artifactId>
-            <version>${cucumber.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- TestNG: runner and SkipException -->
-        <dependency>
-            <groupId>org.testng</groupId>
-            <artifactId>testng</artifactId>
-            <version>${testng.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- AssertJ: fluent assertions in step definitions -->
-        <dependency>
-            <groupId>org.assertj</groupId>
-            <artifactId>assertj-core</artifactId>
-            <version>${assertj.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- Logback: SLF4J implementation for test output -->
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>${logback.version}</version>
-            <scope>test</scope>
+            <groupId>org.seleniumhq.selenium</groupId>
+            <artifactId>selenium-api</artifactId>
+            <version>4.18.1</version>
+            <scope>compile</scope>
         </dependency>
 
     </dependencies>
