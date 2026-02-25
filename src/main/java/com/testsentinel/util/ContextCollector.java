@@ -164,11 +164,15 @@ public class ContextCollector {
         }
         if (msg.contains("\"selector\"")) {
             try {
-                int selStart    = msg.indexOf("\"selector\":\"") + 12;
+                int selStart     = msg.indexOf("\"selector\":\"") + 12;
                 // End is at the closing `"}` of the JSON object
                 int closingBrace = msg.indexOf("\"}", selStart);
                 if (closingBrace > selStart) {
-                    builder.locatorValue(msg.substring(selStart, closingBrace));
+                    String raw = msg.substring(selStart, closingBrace);
+                    // Chrome CSS-escapes characters like hyphens: #phantom\-button → #phantom-button
+                    // Strip all backslash-escape sequences so KB substring patterns match cleanly.
+                    String selector = raw.replaceAll("\\\\(.)", "$1");
+                    builder.locatorValue(selector);
                 }
             } catch (Exception ignored) {}
         }
