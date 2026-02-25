@@ -1,10 +1,13 @@
 package com.testsentinel.hooks;
 
 import com.testsentinel.context.ScenarioContext;
-import com.testsentinel.support.DriverFactory;
-import com.testsentinel.support.SentinelFactory;
+import com.testsentinel.core.ActionPlanAdvisor;
+import com.testsentinel.core.TestSentinelClient;
+import com.testsentinel.core.TestSentinelConfig;
 import com.testsentinel.interceptor.TestSentinelListener;
 import com.testsentinel.model.InsightResponse;
+import com.testsentinel.support.DriverFactory;
+import com.testsentinel.support.SentinelFactory;
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
 import io.cucumber.java.Scenario;
@@ -14,16 +17,10 @@ import org.slf4j.LoggerFactory;
 /**
  * Per-scenario Cucumber hooks — @Before and @After only.
  *
- * PicoContainer constructs this class by calling Hooks(ScenarioContext),
- * injecting the same ScenarioContext instance that all step definition
- * classes in this scenario share.
+ * Each scenario gets a fresh TestSentinelClient for knowledge base isolation:
+ * patterns added in one scenario do not affect other scenarios within the same run.
  *
- * @BeforeAll / @AfterAll MUST NOT be in a class that has a constructor
- * parameter. Cucumber invokes @BeforeAll / @AfterAll on a separate,
- * no-arg construction path that bypasses PicoContainer entirely.
- * Putting them here would cause Cucumber to fail instantiation and
- * silently skip @Before as well, leaving the driver unset.
- *
+ * @BeforeAll / @AfterAll must not be in a class with a constructor parameter.
  * Suite-level setup lives in SuiteHooks (no-arg constructor).
  */
 public class Hooks {
@@ -32,7 +29,6 @@ public class Hooks {
 
     private final ScenarioContext ctx;
 
-    // PicoContainer calls this constructor, injecting the shared ScenarioContext.
     public Hooks(ScenarioContext ctx) {
         this.ctx = ctx;
     }
@@ -41,15 +37,19 @@ public class Hooks {
     public void setUpScenario(Scenario scenario) {
         log.info("─── Scenario START: {} ───", scenario.getName());
 
-        // Pull the suite-level singletons that SuiteHooks initialised
-        ctx.setSentinel(SuiteHooks.sharedSentinel);
-        ctx.setAdvisor(SuiteHooks.sharedAdvisor);
-        ctx.setConfig(SuiteHooks.sharedConfig);
-        ctx.setPhase2Enabled(SuiteHooks.sharedConfig.isPhase2Enabled());
+        // Fresh client per scenario for KB isolation
+        TestSentinelConfig config   = SentinelFactory.buildConfig();
+        TestSentinelClient sentinel = SentinelFactory.createClientFromConfig(config);
+        ActionPlanAdvisor  advisor  = SentinelFactory.createAdvisor(config);
+
+        ctx.setSentinel(sentinel);
+        ctx.setAdvisor(advisor);
+        ctx.setConfig(config);
+        ctx.setPhase2Enabled(config.isPhase2Enabled());
 
         // Fresh listener per scenario — clean step history, correct test name
         TestSentinelListener listener = new TestSentinelListener(
-            SuiteHooks.sharedSentinel,
+            sentinel,
             scenario.getName(),
             scenario.getUri().toString()
         );
@@ -72,7 +72,7 @@ public class Hooks {
                 "TestSentinel Analysis"
             );
             if (insight.hasActionPlan()) {
-                SuiteHooks.sharedAdvisor.logRecommendations(insight);
+                ctx.getAdvisor().logRecommendations(insight);
             }
         }
 
@@ -99,7 +99,7 @@ public class Hooks {
         sb.append("Source     : ").append(
             insight.isLocalResolution()
                 ? "[LOCAL] " + insight.getResolvedFromPattern()
-                : "[Claude API]"
+                : (insight.getAnalysisTokens() == 0 ? "[OFFLINE-UNMATCHED]" : "[Claude API]")
         ).append("\n");
         sb.append("Latency    : ").append(insight.getAnalysisLatencyMs()).append("ms\n");
         sb.append("Tokens     : ").append(insight.getAnalysisTokens()).append("\n");

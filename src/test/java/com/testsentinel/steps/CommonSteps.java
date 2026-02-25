@@ -2,8 +2,6 @@ package com.testsentinel.steps;
 
 import com.testsentinel.context.ScenarioContext;
 import com.testsentinel.core.TestSentinelClient;
-import com.testsentinel.core.TestSentinelConfig;
-import com.testsentinel.interceptor.TestSentinelListener;
 import com.testsentinel.model.ConditionEvent;
 import com.testsentinel.model.ConditionType;
 import com.testsentinel.pages.InternetPage;
@@ -91,29 +89,10 @@ public class CommonSteps {
 
     @Given("Phase 2 is enabled")
     public void phase2IsEnabled() {
-        if (!ctx.isPhase2Enabled()) {
-            log.info("CommonSteps: Phase 2 not enabled globally — enabling for this scenario");
-
-            TestSentinelConfig phase2Config = TestSentinelConfig.builder()
-                .apiKey(resolveApiKey())
-                .phase2Enabled(true)
-                .captureDOM(true)
-                .captureScreenshot(false)
-                .domMaxChars(10_000)
-                .apiEnabled(ctx.isApiKeyPresent())
-                .build();
-
-            TestSentinelClient phase2Client = new TestSentinelClient(phase2Config);
-            TestSentinelListener listener = new TestSentinelListener(
-                phase2Client, "phase2-scenario", "SentinelAnalysis");
-
-            ctx.setSentinel(phase2Client);
-            ctx.setListener(listener);
-            ctx.setPhase2Enabled(true);
-            log.info("CommonSteps: Phase 2 client ready for this scenario");
-        } else {
-            log.info("CommonSteps: Phase 2 already enabled globally");
-        }
+        // Phase 2 (action plans) is enabled by default via SentinelFactory.buildConfig().
+        // This step just confirms / explicitly sets the flag for scenarios that need it.
+        ctx.setPhase2Enabled(true);
+        log.info("CommonSteps: Phase 2 (action plans) enabled for this scenario");
     }
 
     // ── Navigation URL expectation helpers ────────────────────────────────────
@@ -160,11 +139,4 @@ public class CommonSteps {
         ctx.setLastEvent(event);
     }
 
-    private String resolveApiKey() {
-        String fromEnv = System.getenv("ANTHROPIC_API_KEY");
-        if (fromEnv != null && !fromEnv.isBlank()) return fromEnv;
-        String fromProp = System.getProperty("ANTHROPIC_API_KEY");
-        if (fromProp != null && !fromProp.isBlank()) return fromProp;
-        return "DISABLED";
-    }
 }

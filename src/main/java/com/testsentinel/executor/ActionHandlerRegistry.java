@@ -93,15 +93,16 @@ public class ActionHandlerRegistry {
             }
 
             try {
-                ActionHandler handler = (ActionHandler) cls.getDeclaredConstructor().newInstance();
+                var constructor = cls.getDeclaredConstructor();
+                constructor.setAccessible(true);  // support package-private handlers
+                ActionHandler handler = (ActionHandler) constructor.newInstance();
                 registry.put(actionType, handler);
                 log.debug("ActionHandlerRegistry: registered {} -> {}",
                     actionType, cls.getSimpleName());
             } catch (Exception e) {
                 throw new IllegalStateException(
                     "Failed to instantiate handler " + cls.getName() +
-                    " for ActionType." + actionType +
-                    ". Ensure it has a public no-arg constructor.", e);
+                    " for ActionType." + actionType + ".", e);
             }
         }
     }

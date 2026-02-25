@@ -85,14 +85,15 @@ public class ConditionCheckerRegistry {
             seenIds.add(id);
 
             try {
-                ConditionChecker checker = (ConditionChecker) cls.getDeclaredConstructor().newInstance();
+                var constructor = cls.getDeclaredConstructor();
+                constructor.setAccessible(true);  // support package-private checkers
+                ConditionChecker checker = (ConditionChecker) constructor.newInstance();
                 discovered.add(checker);
                 log.debug("ConditionCheckerRegistry: registered '{}' (priority={}) -> {}",
                     id, annotation.priority(), cls.getSimpleName());
             } catch (Exception e) {
                 throw new IllegalStateException(
-                    "Failed to instantiate checker " + cls.getName() +
-                    ". Ensure it has a public no-arg constructor.", e);
+                    "Failed to instantiate checker " + cls.getName() + ".", e);
             }
         }
 

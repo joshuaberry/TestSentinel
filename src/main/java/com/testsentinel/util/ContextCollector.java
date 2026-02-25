@@ -145,25 +145,31 @@ public class ContextCollector {
     // ── Private helpers ───────────────────────────────────────────────────────
 
     private void enrichLocatorContext(ConditionEvent.Builder builder, Exception exception) {
-        // Extract locator strategy and value from the exception message
-        // Selenium formats: "Unable to locate element: {"method":"css selector","selector":".submit-btn"}"
+        // Extract locator strategy and value from the exception message.
+        // Chrome formats: Unable to locate element: {"method":"css selector","selector":"[id=\"x\"]"}
+        //   or           Unable to locate element: {"method":"css selector","selector":"#x"}
+        //
+        // The selector value may contain escaped quotes (e.g., [id=\"x\"]), so we cannot
+        // use indexOf('"') to find the closing quote — it hits the embedded \" first.
+        // Instead we scan to the closing `"}` of the JSON object, which is always the end.
         String msg = exception.getMessage();
         if (msg == null) return;
 
         if (msg.contains("\"method\"")) {
             try {
                 int methodStart = msg.indexOf("\"method\":\"") + 10;
-                int methodEnd = msg.indexOf("\"", methodStart);
-                String strategy = msg.substring(methodStart, methodEnd);
-                builder.locatorStrategy(strategy);
+                int methodEnd   = msg.indexOf("\"", methodStart);
+                builder.locatorStrategy(msg.substring(methodStart, methodEnd));
             } catch (Exception ignored) {}
         }
         if (msg.contains("\"selector\"")) {
             try {
-                int selStart = msg.indexOf("\"selector\":\"") + 12;
-                int selEnd = msg.indexOf("\"", selStart);
-                String selector = msg.substring(selStart, selEnd);
-                builder.locatorValue(selector);
+                int selStart    = msg.indexOf("\"selector\":\"") + 12;
+                // End is at the closing `"}` of the JSON object
+                int closingBrace = msg.indexOf("\"}", selStart);
+                if (closingBrace > selStart) {
+                    builder.locatorValue(msg.substring(selStart, closingBrace));
+                }
             } catch (Exception ignored) {}
         }
     }

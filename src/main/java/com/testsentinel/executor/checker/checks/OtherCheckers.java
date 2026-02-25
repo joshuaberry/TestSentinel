@@ -278,3 +278,60 @@ class ElementInDomChecker implements ConditionChecker {
         return plan;
     }
 }
+
+// ── AssertionFailureChecker ───────────────────────────────────────────────────
+
+/**
+ * Detects test assertion failures (AssertionError, AssertJ, JUnit, TestNG assertions).
+ *
+ * Signals checked (any one is sufficient):
+ *   - Exception message or stack trace contains "AssertionError"
+ *   - Stack trace contains common assertion libraries (assertj, junit, testng)
+ *   - Message contains typical assertion failure phrases
+ *
+ * Priority 25 — purely text-based, no DOM or network interaction.
+ */
+@ChecksCondition(id = "assertion-failure", priority = 25)
+class AssertionFailureChecker implements ConditionChecker {
+
+    private static final List<String> ASSERTION_CLASS_SIGNALS = List.of(
+        "AssertionError", "AssertionFailedError", "ComparisonFailure",
+        "org.assertj", "org.junit.Assert", "org.testng.Assert"
+    );
+
+    private static final List<String> ASSERTION_MESSAGE_SIGNALS = List.of(
+        "expected:", "but was:", "expected [", "to be equal to", "to contain",
+        "Expecting", "Expected condition", "assertion failed"
+    );
+
+    @Override
+    public CheckerResult check(WebDriver driver, ConditionEvent event) {
+        try {
+            String message    = event.getMessage()    != null ? event.getMessage()    : "";
+            String stackTrace = event.getStackTrace() != null ? event.getStackTrace() : "";
+
+            boolean classSignal   = ASSERTION_CLASS_SIGNALS.stream()
+                .anyMatch(s -> message.contains(s) || stackTrace.contains(s));
+
+            boolean messageSignal = ASSERTION_MESSAGE_SIGNALS.stream()
+                .anyMatch(s -> message.toLowerCase().contains(s.toLowerCase()));
+
+            if (!classSignal && !messageSignal) {
+                return CheckerResult.noMatch("assertion-failure");
+            }
+
+            return CheckerResult.matched(
+                "assertion-failure",
+                InsightResponse.ConditionCategory.APPLICATION_BUG,
+                "A test assertion failed — the application returned a value that did not " +
+                "match the expected state. This is typically a genuine test failure (application bug " +
+                "or incorrect test data) rather than a test infrastructure problem.",
+                0.88,
+                null,   // No action plan — assertion failures require human investigation
+                InsightResponse.SuggestedOutcome.FAIL_WITH_CONTEXT.name()
+            );
+        } catch (Exception e) {
+            return CheckerResult.noMatch("assertion-failure");
+        }
+    }
+}

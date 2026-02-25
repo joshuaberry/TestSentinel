@@ -5,6 +5,8 @@ import com.testsentinel.model.ActionStep;
 import com.testsentinel.model.ConditionEvent;
 import com.testsentinel.model.ConditionType;
 import com.testsentinel.model.InsightResponse;
+import com.testsentinel.model.KnownCondition;
+import com.testsentinel.model.UnknownConditionRecord;
 import com.testsentinel.pages.InternetPage;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
@@ -15,6 +17,7 @@ import org.openqa.selenium.NoSuchElementException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -23,11 +26,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 /**
- * Step definitions for Features 02, 03, and 04.
+ * Step definitions for Features 02, 03, 04, 05, and 06.
  *
- *   02 — Claude API analysis (missing elements, action plans)
- *   03 — Knowledge base local resolution (pre-load, promote, reuse)
+ *   02 — Local KB analysis (missing elements, zero tokens)
+ *   03 — Knowledge base management (pre-loaded, direct-add, reuse)
  *   04 — Navigation detection and CONTINUE outcome
+ *   05 — Unknown condition recording
+ *   06 — Autonomous action execution
  */
 public class SentinelAnalysisSteps {
 
@@ -40,7 +45,7 @@ public class SentinelAnalysisSteps {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // Feature 02 — Triggering TestSentinel via missing elements
+    // Triggering conditions — missing elements
     // ════════════════════════════════════════════════════════════════════════
 
     @When("the test attempts to click a nonexistent element with id {string}")
@@ -77,10 +82,6 @@ public class SentinelAnalysisSteps {
 
     @Then("TestSentinel should have produced an insight")
     public void testSentinelShouldHaveProducedAnInsight() {
-        // Do NOT call requireApiKey() here — this step is shared between
-        // @claude-analysis scenarios (API) and @knowledge-base scenarios (KB only).
-        // A KB-resolved insight is a valid insight. The @claude-analysis Background
-        // step handles skipping API-only features when no key is present.
         InsightResponse insight = ctx.getLastInsight();
         assertThat(insight)
             .as("TestSentinel should have produced an InsightResponse")
@@ -89,7 +90,7 @@ public class SentinelAnalysisSteps {
             insight.getConditionCategory(),
             insight.getSuggestedTestOutcome(),
             insight.isLocalResolution()
-                ? "[LOCAL:" + insight.getResolvedFromPattern() + "]" : "[Claude API]");
+                ? "[LOCAL:" + insight.getResolvedFromPattern() + "]" : "[OFFLINE-UNMATCHED or API]");
     }
 
     @And("the insight category should not be null")
@@ -134,6 +135,15 @@ public class SentinelAnalysisSteps {
             .isIn(o1, o2, o3, o4);
     }
 
+    @And("the suggested outcome should be {string}")
+    public void theSuggestedOutcomeShouldBe(String expected) {
+        String actual = ctx.getLastInsight().getSuggestedTestOutcome();
+        assertThat(actual)
+            .as("Suggested outcome should be '%s'", expected)
+            .isEqualTo(expected);
+        log.info("SentinelAnalysisSteps: Suggested outcome = {}", actual);
+    }
+
     @And("the insight root cause should not be empty")
     public void theInsightRootCauseShouldNotBeEmpty() {
         String rootCause = ctx.getLastInsight().getRootCause();
@@ -157,12 +167,8 @@ public class SentinelAnalysisSteps {
 
     @And("the insight should contain an action plan")
     public void theInsightShouldContainAnActionPlan() {
-        if (!ctx.isPhase2Enabled()) {
-            log.info("SentinelAnalysisSteps: Phase 2 not enabled — skipping action plan assertion");
-            return;
-        }
         assertThat(ctx.getLastInsight().hasActionPlan())
-            .as("Phase 2 insight should contain an action plan")
+            .as("Insight should contain an action plan")
             .isTrue();
     }
 
@@ -191,6 +197,41 @@ public class SentinelAnalysisSteps {
         }
     }
 
+    @And("the action plan should have at least one LOW-risk step")
+    public void theActionPlanShouldHaveAtLeastOneLowRiskStep() {
+        assertThat(ctx.getLastInsight().hasActionPlan())
+            .as("Insight must have an action plan")
+            .isTrue();
+        long lowRiskCount = ctx.getLastInsight().getActionPlan().getActions().stream()
+            .filter(s -> s.getRiskLevel() == ActionStep.RiskLevel.LOW)
+            .count();
+        assertThat(lowRiskCount)
+            .as("Action plan should have at least one LOW-risk step")
+            .isGreaterThan(0);
+        log.info("SentinelAnalysisSteps: {} LOW-risk step(s) found in action plan", lowRiskCount);
+    }
+
+    @And("the advisor confirms at least one step is executable")
+    public void theAdvisorConfirmsAtLeastOneStepIsExecutable() {
+        InsightResponse insight = ctx.getLastInsight();
+        assertThat(ctx.getAdvisor().hasExecutableSteps(insight))
+            .as("Advisor should confirm at least one executable step within risk limit")
+            .isTrue();
+        log.info("SentinelAnalysisSteps: Advisor confirms executable steps available");
+    }
+
+    @And("no MEDIUM or HIGH risk steps are auto-executable at current risk limit")
+    public void noMediumOrHighRiskStepsAreAutoExecutable() {
+        List<ActionStep> executableSteps = ctx.getAdvisor().getExecutableSteps(ctx.getLastInsight());
+        boolean anyMediumOrHigh = executableSteps.stream()
+            .anyMatch(s -> s.getRiskLevel() == ActionStep.RiskLevel.MEDIUM
+                        || s.getRiskLevel() == ActionStep.RiskLevel.HIGH);
+        assertThat(anyMediumOrHigh)
+            .as("No MEDIUM or HIGH risk steps should be auto-executable at LOW risk limit")
+            .isFalse();
+        log.info("SentinelAnalysisSteps: Confirmed — no MEDIUM/HIGH risk steps in executable set");
+    }
+
     // ════════════════════════════════════════════════════════════════════════
     // Feature 03 — Knowledge Base
     // ════════════════════════════════════════════════════════════════════════
@@ -205,9 +246,13 @@ public class SentinelAnalysisSteps {
 
     @And("the knowledge base does not contain the pattern {string}")
     public void theKnowledgeBaseDoesNotContainThePattern(String patternId) {
+        // If pattern exists from a previous run, clean it up first
+        if (ctx.getSentinel().hasPattern(patternId)) {
+            log.info("SentinelAnalysisSteps: Removing leftover pattern '{}' from previous run", patternId);
+            ctx.getSentinel().removePattern(patternId);
+        }
         assertThat(ctx.getSentinel().hasPattern(patternId))
-            .as("KB should NOT contain pattern '%s' at the start of this scenario. "
-              + "Delete the entry from known-conditions.json and re-run.", patternId)
+            .as("KB should NOT contain pattern '%s' (removed if it existed from a prior run)", patternId)
             .isFalse();
         log.info("SentinelAnalysisSteps: Confirmed pattern '{}' is absent from KB", patternId);
     }
@@ -217,7 +262,8 @@ public class SentinelAnalysisSteps {
         InsightResponse insight = ctx.getLastInsight();
         assertThat(insight).isNotNull();
         assertThat(insight.isLocalResolution())
-            .as("Insight should have been resolved from KB, not Claude API")
+            .as("Insight should have been resolved from KB, not Claude API. " +
+                "resolvedFromPattern=%s, tokens=%d", insight.getResolvedFromPattern(), insight.getAnalysisTokens())
             .isTrue();
         log.info("SentinelAnalysisSteps: Local resolution confirmed from pattern '{}'",
             insight.getResolvedFromPattern());
@@ -234,7 +280,7 @@ public class SentinelAnalysisSteps {
     public void theInsightTokensUsedShouldBe(int expectedTokens) {
         int actual = ctx.getLastInsight().getAnalysisTokens();
         assertThat(actual)
-            .as("Local resolution should use 0 tokens")
+            .as("Local resolution should use %d tokens (was %d)", expectedTokens, actual)
             .isEqualTo(expectedTokens);
         log.info("SentinelAnalysisSteps: Tokens used = {}", actual);
     }
@@ -246,6 +292,35 @@ public class SentinelAnalysisSteps {
             .as("Local KB resolution should be under %dms (was %dms)", maxMs, actual)
             .isLessThan((long) maxMs);
         log.info("SentinelAnalysisSteps: Latency = {}ms", actual);
+    }
+
+    @When("the engineer adds pattern {string} for element {string}")
+    public void theEngineerAddsPatternForElement(String patternId, String cssSelector) {
+        String currentUrl = ctx.getDriver().getCurrentUrl();
+        KnownCondition kc = new KnownCondition();
+        kc.setId(patternId);
+        kc.setDescription("Direct-add test pattern for element '" + cssSelector + "'");
+        kc.setEnabled(true);
+        kc.setUrlPattern(extractUrlPath(currentUrl));
+        kc.setLocatorValuePattern(cssSelector);
+        kc.setConditionType(ConditionType.LOCATOR_NOT_FOUND.name());
+        kc.setMinMatchSignals(3);
+        kc.setConditionCategory("APPLICATION_BUG");
+        kc.setRootCause("Element '" + cssSelector + "' does not exist on this page.");
+        kc.setSuggestedTestOutcome("FAIL_WITH_CONTEXT");
+        kc.setAddedBy("cucumber-scenario");
+        kc.setAddedAt(Instant.now());
+
+        ctx.getSentinel().addPattern(kc);
+        log.info("SentinelAnalysisSteps: Pattern '{}' added directly for element '{}'", patternId, cssSelector);
+    }
+
+    @Then("the knowledge base should contain the pattern {string}")
+    public void theKnowledgeBaseShouldContainThePattern(String patternId) {
+        assertThat(ctx.getSentinel().hasPattern(patternId))
+            .as("KB should contain pattern '%s' after adding it", patternId)
+            .isTrue();
+        log.info("SentinelAnalysisSteps: KB confirmed to have pattern '{}'", patternId);
     }
 
     @When("the engineer promotes the insight as pattern {string}")
@@ -267,14 +342,6 @@ public class SentinelAnalysisSteps {
 
         ctx.setLastInsight(null);
         if (ctx.getListener() != null) ctx.getListener().reset("after-promote");
-    }
-
-    @Then("the knowledge base should contain the pattern {string}")
-    public void theKnowledgeBaseShouldContainThePattern(String patternId) {
-        assertThat(ctx.getSentinel().knowledgeBaseSize())
-            .as("KB should have at least one pattern after promoting '%s'", patternId)
-            .isGreaterThan(0);
-        log.info("SentinelAnalysisSteps: KB now has {} pattern(s)", ctx.getSentinel().knowledgeBaseSize());
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -299,7 +366,6 @@ public class SentinelAnalysisSteps {
             log.info("SentinelAnalysisSteps: No event stored — assuming URL mismatch");
             return;
         }
-        requireApiKey("navigation analysis");
         InsightResponse insight = ctx.getSentinel().analyzeWrongPage(
             ctx.getDriver(),
             event.getExpectedUrl(),
@@ -308,7 +374,8 @@ public class SentinelAnalysisSteps {
         );
         ctx.getSentinel().logInsight(insight);
         ctx.setLastInsight(insight);
-        log.info("SentinelAnalysisSteps: analyzeWrongPage — outcome={}", insight.getSuggestedTestOutcome());
+        log.info("SentinelAnalysisSteps: analyzeWrongPage — outcome={}, local={}",
+            insight.getSuggestedTestOutcome(), insight.isLocalResolution());
     }
 
     @Then("TestSentinel should classify this as a navigation condition")
@@ -376,7 +443,6 @@ public class SentinelAnalysisSteps {
             ? event.getExpectedUrl()
             : InternetPage.LOGIN_URL;
 
-        requireApiKey("wrong page analysis");
         InsightResponse insight = ctx.getSentinel().analyzeWrongPage(
             ctx.getDriver(),
             expectedUrl,
@@ -385,7 +451,8 @@ public class SentinelAnalysisSteps {
         );
         ctx.getSentinel().logInsight(insight);
         ctx.setLastInsight(insight);
-        log.info("SentinelAnalysisSteps: Wrong page analysis — isContinuable={}", insight.isContinuable());
+        log.info("SentinelAnalysisSteps: Wrong page analysis — isContinuable={}, local={}",
+            insight.isContinuable(), insight.isLocalResolution());
     }
 
     @Then("if the insight is continuable it should have a continue context")
@@ -416,7 +483,53 @@ public class SentinelAnalysisSteps {
         }
     }
 
-    // ── Private helpers ───────────────────────────────────────────────────────
+    // ════════════════════════════════════════════════════════════════════════
+    // Feature 05 — Unknown Condition Recording
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Given("no pattern matches the locator {string}")
+    public void noPatternMatchesTheLocator(String locator) {
+        // Verify no existing pattern would match this locator
+        // (Since the locator contains a random suffix, no pattern should match)
+        log.info("SentinelAnalysisSteps: Precondition — no KB pattern expected to match '{}'", locator);
+        // No assertion needed — if a false match occurs the later assertions will catch it
+    }
+
+    @And("an unknown condition record should have been created for {string}")
+    public void anUnknownConditionRecordShouldHaveBeenCreatedFor(String locatorValue) {
+        assertThat(ctx.getSentinel().getRecorder())
+            .as("UnknownConditionRecorder must be configured (set TESTSENTINEL_UNKNOWN_LOG_PATH or use offline mode)")
+            .isNotNull();
+
+        List<UnknownConditionRecord> records = ctx.getSentinel().getUnknownConditionRecords();
+        boolean found = records.stream()
+            .anyMatch(r -> r.getLocatorValue() != null && r.getLocatorValue().contains(
+                // Strip leading # or . if present — locatorValue is extracted without selector prefix
+                locatorValue.startsWith("#") ? locatorValue.substring(1) : locatorValue
+            ) || (r.getMessage() != null && r.getMessage().contains(locatorValue)));
+
+        assertThat(found)
+            .as("An unknown condition record should exist for locator '%s'. Records: %s",
+                locatorValue, records)
+            .isTrue();
+        log.info("SentinelAnalysisSteps: Unknown condition record confirmed for '{}'", locatorValue);
+    }
+
+    @And("the unknown record status should be {string}")
+    public void theUnknownRecordStatusShouldBe(String expectedStatus) {
+        List<UnknownConditionRecord> records = ctx.getSentinel().getUnknownConditionRecords();
+        boolean allNew = records.stream()
+            .filter(r -> r.getStatus() != null)
+            .anyMatch(r -> r.getStatus().name().equals(expectedStatus));
+        assertThat(allNew)
+            .as("At least one record should have status '%s'", expectedStatus)
+            .isTrue();
+        log.info("SentinelAnalysisSteps: Record with status '{}' confirmed", expectedStatus);
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Private helpers
+    // ════════════════════════════════════════════════════════════════════════
 
     private void callSentinelForMissingElement(String locatorDescription, String locatorValue) {
         if (ctx.getSentinel() == null) return;
@@ -424,7 +537,7 @@ public class SentinelAnalysisSteps {
             .conditionType(ConditionType.LOCATOR_NOT_FOUND)
             .message("Element not found: " + locatorDescription)
             .currentUrl(ctx.getDriver().getCurrentUrl())
-            .locatorValue(locatorValue)   // required for KB locatorValuePattern matching
+            .locatorValue(locatorValue)
             .build();
         ctx.setLastEvent(event);
         InsightResponse insight = ctx.getSentinel().analyzeEvent(event);
@@ -432,11 +545,13 @@ public class SentinelAnalysisSteps {
         ctx.setLastInsight(insight);
     }
 
-    private void requireApiKey(String context) {
-        if (!ctx.isApiKeyPresent()) {
-            throw new org.testng.SkipException(
-                "ANTHROPIC_API_KEY not set — skipping " + context + ". " +
-                "Run with -Dcucumber.filter.tags=\"not @sentinel\" to exclude API-dependent tests.");
+    private String extractUrlPath(String url) {
+        if (url == null) return "";
+        try {
+            java.net.URI uri = new java.net.URI(url);
+            return uri.getHost() + (uri.getPath() != null ? uri.getPath() : "");
+        } catch (Exception e) {
+            return url;
         }
     }
 }

@@ -19,10 +19,11 @@ public class CascadeResult {
 
     /** How this cascade pass obtained its insight. */
     public enum Source {
-        LOCAL_CHECKER,   // A ConditionChecker matched — no API call
-        KNOWLEDGE_BASE,  // KB pattern matched inside analyzeEvent — no API call
-        CLAUDE_API,      // Claude API was called
-        FALLBACK_ERROR   // All paths failed or returned error
+        LOCAL_CHECKER,    // A ConditionChecker matched — no API call
+        KNOWLEDGE_BASE,   // KB pattern matched inside analyzeEvent — no API call
+        CLAUDE_API,       // Claude API was called
+        UNKNOWN_RECORDED, // No match found; condition recorded for human review (offline mode)
+        FALLBACK_ERROR    // All paths failed or returned error
     }
 
     private final int                depth;           // 1-based cascade depth (1 = first attempt)

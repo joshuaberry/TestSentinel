@@ -1,10 +1,15 @@
 package com.testsentinel.core;
 
 import com.testsentinel.api.ClaudeApiGateway;
+import com.testsentinel.executor.ActionHandlerRegistry;
+import com.testsentinel.executor.ActionPlanExecutor;
+import com.testsentinel.executor.ActionResult;
+import com.testsentinel.model.ActionStep;
 import com.testsentinel.model.ConditionEvent;
 import com.testsentinel.model.ConditionType;
 import com.testsentinel.model.InsightResponse;
 import com.testsentinel.model.KnownCondition;
+import com.testsentinel.model.UnknownConditionRecord;
 import com.testsentinel.prompt.PromptEngine;
 import com.testsentinel.util.ContextCollector;
 import org.openqa.selenium.WebDriver;
@@ -16,44 +21,33 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * TestSentinelClient — the primary integration point for test automation frameworks.
  *
- * ## Resolution Priority
+ * ## Resolution Priority (Offline-First)
  * Every call to analyzeEvent() follows this decision tree:
  *
  *   1. Knowledge Base check (local, 0ms, 0 tokens)
- *      If a KnownCondition pattern matches, return a locally-built InsightResponse immediately.
- *      No API call is made. Confidence is 1.0. latencyMs is sub-millisecond.
+ *      If a KnownCondition pattern matches, return a locally-built InsightResponse
+ *      immediately. Confidence is 1.0. No API call is made.
  *
- *   2. Claude API call (network, 3-8s, ~1500-3500 tokens)
- *      If no local match, build ConditionEvent, call Claude, parse response.
+ *   2. Offline recording (when offlineMode = true)
+ *      If no KB match, record an UnknownConditionRecord for human review and
+ *      return a graceful INVESTIGATE response. No API call is made.
+ *
+ *   3. Claude API call (only when offlineMode = false and API key configured)
+ *      Falls back to Claude for root cause analysis when offline mode is disabled.
+ *
+ * ## Autonomous Action Execution
+ * When a KB match includes an action plan, TestSentinelClient automatically
+ * executes LOW-risk steps via ActionPlanExecutor when a WebDriver is available
+ * (i.e., when analyzeException() or analyzeWrongPage() is called directly).
  *
  * ## Training the Knowledge Base
- * When Claude produces a resolution that an engineer confirms as correct, call:
- *   sentinel.recordResolution(event, insight, "pattern-id", "engineer-name")
- *
- * This writes a KnownCondition to the JSON file. The next occurrence of the same
- * pattern resolves locally — permanently, for free.
- *
- * ## Quick Start
- * <pre>
- *   TestSentinelConfig config = TestSentinelConfig.fromEnvironment();
- *   // Set TESTSENTINEL_KNOWLEDGE_BASE_PATH=/path/to/known-conditions.json to enable KB
- *
- *   TestSentinelClient sentinel = new TestSentinelClient(config);
- *
- *   try {
- *       driver.findElement(By.cssSelector(".submit-btn")).click();
- *   } catch (NoSuchElementException e) {
- *       InsightResponse insight = sentinel.analyzeException(driver, e, steps, meta);
- *       // insight.isLocalResolution() == true if resolved from KB
- *       // insight.isLocalResolution() == false if Claude was called
- *   }
- * </pre>
- *
- * Thread-safe. Designed to be shared across parallel test threads.
+ * Engineers add patterns directly to known-conditions.json (hand-edit or via
+ * addPattern()) after reviewing unknown-conditions-log.json records.
  */
 public class TestSentinelClient {
 
@@ -63,24 +57,42 @@ public class TestSentinelClient {
     private final ContextCollector contextCollector;
     private final ClaudeApiGateway apiGateway;
     private final PromptEngine promptEngine;
-    private final KnownConditionRepository knowledgeBase; // null when KB not configured
+    private final KnownConditionRepository knowledgeBase;
     private final LocalResolutionBuilder localBuilder;
+    private final UnknownConditionRecorder recorder;
+    private final ActionPlanExecutor autoExecutor;
+
+    // Last auto-execution results — useful for test assertions in single-threaded suites
+    private volatile List<ActionResult> lastAutoActionResults = Collections.emptyList();
 
     public TestSentinelClient(TestSentinelConfig config) {
+        this(config, null);
+    }
+
+    public TestSentinelClient(TestSentinelConfig config, UnknownConditionRecorder recorder) {
         this.config = config;
+        this.recorder = recorder;
         this.contextCollector = new ContextCollector(config);
         this.apiGateway = new ClaudeApiGateway(config);
         this.promptEngine = new PromptEngine();
         this.localBuilder = new LocalResolutionBuilder();
+        this.autoExecutor = new ActionPlanExecutor(
+            new ActionHandlerRegistry(),
+            ActionStep.RiskLevel.LOW,
+            false
+        );
 
         if (config.isKnowledgeBaseEnabled()) {
             this.knowledgeBase = new KnownConditionRepository(config.getKnowledgeBasePath());
-            log.info("TestSentinel initialized — model={}, enabled={}, knowledgeBase={} patterns",
-                config.getModel(), config.isApiEnabled(), knowledgeBase.size());
+            log.info("TestSentinel initialized — offline={}, KB={} patterns, unknownLog={}",
+                config.isOfflineMode(),
+                knowledgeBase.size(),
+                recorder != null ? config.getUnknownConditionLogPath() : "disabled");
         } else {
             this.knowledgeBase = null;
-            log.info("TestSentinel initialized — model={}, enabled={}, knowledgeBase=disabled",
-                config.getModel(), config.isApiEnabled());
+            log.info("TestSentinel initialized — offline={}, KB=disabled, unknownLog={}",
+                config.isOfflineMode(),
+                recorder != null ? config.getUnknownConditionLogPath() : "disabled");
         }
     }
 
@@ -88,7 +100,7 @@ public class TestSentinelClient {
 
     /**
      * Analyzes any exception caught during test execution.
-     * Checks knowledge base first; calls Claude only if no local match found.
+     * Auto-executes LOW-risk KB action plan steps when the condition matches locally.
      */
     public InsightResponse analyzeException(WebDriver driver, Exception exception) {
         return analyzeException(driver, exception, Collections.emptyList(), Collections.emptyMap());
@@ -96,6 +108,7 @@ public class TestSentinelClient {
 
     /**
      * Analyzes any exception caught during test execution, with step history and metadata.
+     * Auto-executes LOW-risk KB action plan steps when the condition matches locally.
      */
     public InsightResponse analyzeException(
             WebDriver driver,
@@ -103,18 +116,21 @@ public class TestSentinelClient {
             List<String> priorSteps,
             Map<String, String> testMeta
     ) {
-        // No isApiEnabled guard here — analyzeEvent() handles that after the KB check.
-        // Guarding here would prevent KB resolution when no API key is configured.
         ConditionType conditionType = mapExceptionToConditionType(exception);
         log.info("TestSentinel: Analyzing {} condition — {}", conditionType, exception.getMessage());
 
         ConditionEvent event = contextCollector.collect(driver, conditionType, exception, priorSteps, testMeta);
-        return analyzeEvent(event);
+        InsightResponse insight = analyzeEvent(event);
+
+        // Auto-execute LOW-risk KB action plan steps when driver is available
+        autoExecuteIfApplicable(insight, driver, event);
+
+        return insight;
     }
 
     /**
      * Analyzes a wrong-page condition where the test detects it is on an unexpected URL.
-     * Checks knowledge base first; calls Claude only if no local match found.
+     * Auto-executes LOW-risk KB action plan steps when the condition matches locally.
      */
     public InsightResponse analyzeWrongPage(
             WebDriver driver,
@@ -122,12 +138,16 @@ public class TestSentinelClient {
             List<String> priorSteps,
             Map<String, String> testMeta
     ) {
-        // No isApiEnabled guard here — analyzeEvent() handles that after the KB check.
         log.info("TestSentinel: Analyzing WRONG_PAGE condition — expected={}, actual={}",
             expectedUrl, safeGetUrl(driver));
 
         ConditionEvent event = contextCollector.collectWrongPage(driver, expectedUrl, priorSteps, testMeta);
-        return analyzeEvent(event);
+        InsightResponse insight = analyzeEvent(event);
+
+        // Auto-execute LOW-risk KB action plan steps when driver is available
+        autoExecuteIfApplicable(insight, driver, event);
+
+        return insight;
     }
 
     /**
@@ -135,13 +155,11 @@ public class TestSentinelClient {
      *
      * Resolution priority:
      *   1. Local knowledge base match  — sub-millisecond, 0 tokens, confidence 1.0
-     *   2. Claude API call             — 3-8s, ~1500-3500 tokens, confidence from model
+     *   2. Offline recorder            — records for human review when offlineMode=true
+     *   3. Claude API call             — only when offlineMode=false and API key is set
      */
     public InsightResponse analyzeEvent(ConditionEvent event) {
         // ── Step 1: Local knowledge base ─────────────────────────────────────
-        // The KB is always consulted regardless of the enabled flag.
-        // enabled=false means "no API key available" — it should gate Claude
-        // calls only, never local resolution which costs nothing.
         if (knowledgeBase != null) {
             long kbStart = System.currentTimeMillis();
             Optional<KnownCondition> match = knowledgeBase.findExactMatch(event);
@@ -150,17 +168,25 @@ public class TestSentinelClient {
                 long latencyMs = System.currentTimeMillis() - kbStart;
                 knowledgeBase.recordHit(kc);
                 InsightResponse insight = localBuilder.build(kc, latencyMs);
-                log.info("TestSentinel: [LOCAL] Pattern '{}' matched — API call skipped ({}ms, 0 tokens)",
+                log.info("TestSentinel: [LOCAL KB] Pattern '{}' matched — API call skipped ({}ms, 0 tokens)",
                     kc.getId(), latencyMs);
                 return insight;
             }
         }
 
-        // ── Step 2: Claude API call ───────────────────────────────────────────
-        // Only reached if no KB match was found.
+        // ── Step 2: Offline — record for human review ─────────────────────────
+        if (config.isOfflineMode()) {
+            log.info("TestSentinel: [OFFLINE] No KB match — recording unknown condition for human review");
+            if (recorder != null) {
+                recorder.record(event);
+            }
+            return buildOfflineNoMatchResponse(event);
+        }
+
+        // ── Step 3: Claude API call ───────────────────────────────────────────
         if (!config.isApiEnabled()) {
-            log.debug("TestSentinel: No KB match and client is disabled (no API key) — returning error insight");
-            return InsightResponse.error("TestSentinel is disabled — no API key configured", 0);
+            log.debug("TestSentinel: No KB match and API disabled — returning error insight");
+            return InsightResponse.error("TestSentinel: no KB match and API is disabled", 0);
         }
         long startMs = System.currentTimeMillis();
         try {
@@ -168,27 +194,39 @@ public class TestSentinelClient {
             return apiGateway.analyze(userContent);
         } catch (Exception e) {
             long latencyMs = System.currentTimeMillis() - startMs;
-            log.error("TestSentinel: Unexpected error during analysis: {}", e.getMessage(), e);
+            log.error("TestSentinel: Unexpected error during API analysis: {}", e.getMessage(), e);
             return InsightResponse.error("Unexpected error: " + e.getMessage(), latencyMs);
         }
     }
 
-    // ── Knowledge Base Training ───────────────────────────────────────────────
+    // ── Knowledge Base Management ─────────────────────────────────────────────
+
+    /**
+     * Adds a KnownCondition pattern directly to the knowledge base.
+     * The pattern is persisted to the JSON file immediately.
+     */
+    public void addPattern(KnownCondition kc) {
+        if (knowledgeBase == null) {
+            log.warn("TestSentinel: Cannot add pattern — TESTSENTINEL_KNOWLEDGE_BASE_PATH not configured");
+            return;
+        }
+        knowledgeBase.add(kc);
+        log.info("TestSentinel: Pattern '{}' added to knowledge base directly", kc.getId());
+    }
+
+    /**
+     * Removes (disables) a pattern from the knowledge base.
+     * The pattern is disabled in memory and marked disabled on disk.
+     */
+    public void removePattern(String id) {
+        if (knowledgeBase == null) return;
+        knowledgeBase.disable(id);
+        log.info("TestSentinel: Pattern '{}' disabled/removed from knowledge base", id);
+    }
 
     /**
      * Promotes a confirmed Claude resolution to the local knowledge base.
-     *
-     * After calling this, the next occurrence of the same condition pattern will
-     * be resolved locally in sub-millisecond time with zero API cost.
-     *
-     * Signals (urlPattern, locatorValuePattern, conditionType) are inferred from the
-     * ConditionEvent. Review the JSON file afterward to add domContains or exceptionType
-     * signals for tighter matching specificity.
-     *
-     * @param event    The original ConditionEvent that triggered the analysis
-     * @param insight  The InsightResponse confirmed to be correct by an engineer
-     * @param id       Short human-readable pattern key, e.g. "cookie-banner-checkout"
-     * @param addedBy  Engineer name or ID for audit trail
+     * Only useful when offlineMode=false and a Claude result is available.
      */
     public void recordResolution(ConditionEvent event, InsightResponse insight,
                                   String id, String addedBy) {
@@ -203,21 +241,17 @@ public class TestSentinelClient {
 
         KnownCondition kc = new KnownCondition();
         kc.setId(id);
-        kc.setDescription("Promoted from Claude analysis on " + Instant.now());
+        kc.setDescription("Promoted from analysis on " + Instant.now());
         kc.setEnabled(true);
 
-        // Infer matching signals from the event
         kc.setUrlPattern(trimToNull(event.getCurrentUrl()));
         kc.setLocatorValuePattern(trimToNull(event.getLocatorValue()));
         kc.setConditionType(
             event.getConditionType() != null ? event.getConditionType().name() : null);
-        // domContains and exceptionType are intentionally not auto-populated — they require
-        // manual curation to avoid over-broad matches. Add them directly in the JSON file.
 
         int signalCount = countNonNull(kc.getUrlPattern(), kc.getLocatorValuePattern(), kc.getConditionType());
-        kc.setMinMatchSignals(signalCount > 1 ? 2 : 1);
+        kc.setMinMatchSignals(Math.max(2, signalCount));
 
-        // Copy resolution verbatim from confirmed insight
         kc.setConditionCategory(
             insight.getConditionCategory() != null ? insight.getConditionCategory().name() : null);
         kc.setRootCause(insight.getRootCause());
@@ -226,18 +260,15 @@ public class TestSentinelClient {
         kc.setSuggestedTestOutcome(insight.getSuggestedTestOutcome());
         kc.setActionPlan(insight.getActionPlan());
         kc.setContinueContext(insight.getContinueContext());
-
         kc.setAddedBy(addedBy);
         kc.setAddedAt(Instant.now());
 
         knowledgeBase.add(kc);
-        log.info("TestSentinel: Pattern '{}' added to knowledge base by {} — future occurrences resolve locally",
-            id, addedBy);
+        log.info("TestSentinel: Pattern '{}' promoted to knowledge base by {}", id, addedBy);
     }
 
     /**
      * Reloads the knowledge base from disk without restarting the suite.
-     * Call this from a @BeforeSuite or @BeforeClass hook after hand-editing known-conditions.json.
      */
     public void reloadKnowledgeBase() {
         if (knowledgeBase != null) {
@@ -248,34 +279,33 @@ public class TestSentinelClient {
         }
     }
 
-    /**
-     * Returns the number of active patterns currently loaded.
-     * Returns 0 if the knowledge base is not configured.
-     */
     public int knowledgeBaseSize() {
         return knowledgeBase != null ? knowledgeBase.size() : 0;
     }
 
-    /**
-     * Returns true if the knowledge base contains a pattern with the given id.
-     * Returns false if the knowledge base is not configured or the id is not found.
-     */
     public boolean hasPattern(String id) {
         if (knowledgeBase == null || id == null) return false;
-        return knowledgeBase.findAll().stream()
-            .anyMatch(kc -> id.equals(kc.getId()));
+        return knowledgeBase.findAll().stream().anyMatch(kc -> id.equals(kc.getId()));
     }
+
+    // ── Recorder Access ───────────────────────────────────────────────────────
+
+    /** Returns the unknown condition recorder, or null if not configured. */
+    public UnknownConditionRecorder getRecorder() { return recorder; }
+
+    /** Returns all unknown condition records, or empty if recorder not configured. */
+    public List<UnknownConditionRecord> getUnknownConditionRecords() {
+        return recorder != null ? recorder.getRecords() : Collections.emptyList();
+    }
+
+    /** Returns the action results from the most recent auto-execution (single-threaded suites only). */
+    public List<ActionResult> getLastAutoActionResults() { return lastAutoActionResults; }
 
     // ── Convenience Logging ───────────────────────────────────────────────────
 
-    /**
-     * Logs the InsightResponse at INFO level in a human-readable format.
-     * Shows [LOCAL] source tag when resolved from the knowledge base.
-     */
     public void logInsight(InsightResponse insight) {
         if (insight == null) return;
 
-        // CONTINUE path — green-light signal
         if (insight.isContinuable()) {
             log.info("╔══ TestSentinel: CONTINUE — No Problem Detected ══════════════╗");
             log.info("║  Category  : {}", insight.getConditionCategory());
@@ -286,18 +316,17 @@ public class TestSentinelClient {
             if (insight.getContinueContext() != null) {
                 var ctx = insight.getContinueContext();
                 log.info("║  State     : {}", ctx.getObservedState());
-                if (ctx.hasResumeHint())  log.info("║  Resume At : {}", ctx.getResumeFromStepHint());
-                if (ctx.hasCaveats())     log.info("║  ⚠ Caveat  : {}", ctx.getCaveats());
+                if (ctx.hasResumeHint()) log.info("║  Resume At : {}", ctx.getResumeFromStepHint());
+                if (ctx.hasCaveats())    log.info("║  ⚠ Caveat  : {}", ctx.getCaveats());
             }
             log.info("║  Latency   : {}ms  |  Tokens: {}", insight.getAnalysisLatencyMs(), insight.getAnalysisTokens());
             log.info("╚═════════════════════════════════════════════════════════════╝");
             return;
         }
 
-        // Problem path
         String source = insight.isLocalResolution()
             ? "[LOCAL:" + insight.getResolvedFromPattern() + "]"
-            : "[Claude API]";
+            : (insight.getAnalysisTokens() == 0 ? "[OFFLINE-UNMATCHED]" : "[Claude API]");
         log.info("╔══ TestSentinel Insight {} ═══════════════════════════════════╗", source);
         log.info("║  Category    : {}", insight.getConditionCategory());
         log.info("║  Confidence  : {}%", Math.round(insight.getConfidence() * 100));
@@ -309,10 +338,8 @@ public class TestSentinelClient {
         }
         if (insight.hasActionPlan()) {
             var plan = insight.getActionPlan();
-            log.info("║  ─────────────────────────────────────────────────────────── ║");
             log.info("║  Action Plan : {} ({}%)", plan.getPlanSummary(),
                 Math.round(plan.getPlanConfidence() * 100));
-            log.info("║  Human Needed: {}", plan.isRequiresHuman() ? "Yes" : "No");
             for (int i = 0; i < plan.getActions().size(); i++) {
                 var step = plan.getActions().get(i);
                 log.info("║  Step {}  [{}][{}] {} ({}%)",
@@ -325,6 +352,31 @@ public class TestSentinelClient {
     }
 
     // ── Private Helpers ───────────────────────────────────────────────────────
+
+    private void autoExecuteIfApplicable(InsightResponse insight, WebDriver driver, ConditionEvent event) {
+        if (!insight.isLocalResolution() || !insight.hasActionPlan() || driver == null) return;
+        log.info("TestSentinel: Auto-executing LOW-risk KB action plan for pattern '{}'",
+            insight.getResolvedFromPattern());
+        List<ActionResult> results = autoExecutor.execute(insight, driver, event, Collections.emptyList());
+        this.lastAutoActionResults = results;
+    }
+
+    private InsightResponse buildOfflineNoMatchResponse(ConditionEvent event) {
+        InsightResponse r = new InsightResponse();
+        r.setConditionId(UUID.randomUUID().toString());
+        r.setConditionCategory(InsightResponse.ConditionCategory.UNKNOWN);
+        r.setRootCause("No matching pattern found in the local knowledge base. " +
+            "This condition has been recorded in the unknown conditions log for human review. " +
+            "Add a pattern to known-conditions.json to resolve this condition automatically in future runs.");
+        r.setConfidence(0.0);
+        r.setTransient(false);
+        r.setSuggestedTestOutcome(InsightResponse.SuggestedOutcome.INVESTIGATE.name());
+        r.setAnalysisTokens(0);
+        r.setAnalysisLatencyMs(0);
+        r.setAnalyzedAt(Instant.now());
+        r.setRawClaudeResponse("[OFFLINE] No KB match — recorded for human review");
+        return r;
+    }
 
     private ConditionType mapExceptionToConditionType(Exception exception) {
         if (exception == null) return ConditionType.EXCEPTION;

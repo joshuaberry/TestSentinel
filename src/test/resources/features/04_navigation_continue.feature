@@ -4,6 +4,8 @@
 # These scenarios exercise the CONTINUE outcome: TestSentinel recognising when
 # a condition is NOT actually a problem and the test should keep going.
 #
+# All scenarios resolve via local KB patterns — no API call required.
+#
 # Page choices:
 #   NAVIGATION (wrong page)     — browser is on /login, test expects /secure
 #   NAVIGATED_PAST              — browser is already on /secure (logged in),
@@ -22,7 +24,7 @@ Feature: TestSentinel Navigation Detection and CONTINUE Outcome
 
   Background:
     Given the browser is open on the login page
-    And TestSentinel is enabled with a valid API key
+    And a knowledge base file is configured
 
   @navigation-wrong-page
   Scenario: TestSentinel detects the browser is on the wrong page

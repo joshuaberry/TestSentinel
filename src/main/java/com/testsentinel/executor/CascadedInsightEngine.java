@@ -185,9 +185,15 @@ public class CascadedInsightEngine {
             insight = InsightResponse.error("Analysis failed: " + e.getMessage(), 0);
         }
 
-        CascadeResult.Source source = insight.isLocalResolution()
-            ? CascadeResult.Source.KNOWLEDGE_BASE
-            : CascadeResult.Source.CLAUDE_API;
+        CascadeResult.Source source;
+        if (insight.isLocalResolution()) {
+            source = CascadeResult.Source.KNOWLEDGE_BASE;
+        } else if (insight.getAnalysisTokens() == 0 &&
+                   InsightResponse.SuggestedOutcome.INVESTIGATE.name().equals(insight.getSuggestedTestOutcome())) {
+            source = CascadeResult.Source.UNKNOWN_RECORDED;
+        } else {
+            source = CascadeResult.Source.CLAUDE_API;
+        }
 
         log.info("CascadedInsightEngine: [{}] category={}, confidence={}",
             source,

@@ -185,9 +185,11 @@
                         Surefire matches <include> patterns against source file names (.java),
                         not compiled class files. CucumberRunner.java is the sole TestNG
                         entry point; Cucumber discovers all scenarios from it.
+                        CheckerUnitTest provides fast, no-Selenium unit tests for checkers.
                     -->
                     <includes>
                         <include>**/CucumberRunner.java</include>
+                        <include>**/*UnitTest.java</include>
                     </includes>
                     <argLine>-ea -Dfile.encoding=UTF-8</argLine>
                     <systemPropertyVariables>
