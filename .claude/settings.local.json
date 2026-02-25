@@ -4,7 +4,11 @@
       "Bash(tail:*)",
       "Bash(cmd.exe:*)",
       "Bash(export JAVA_HOME=\"/c/Users/joshu/.jdks/openjdk-25.0.2\" && export PATH=\"$JAVA_HOME/bin:$PATH\" && cd /c/Users/joshu/IdeaProjects/TestSentinel && \"/c/Program Files/JetBrains/IntelliJ IDEA 2025.3.1/plugins/maven/lib/maven3/bin/mvn\" test 2>&1)",
-      "Bash(pandoc:*)"
+      "Bash(pandoc:*)",
+      "WebSearch",
+      "WebFetch(domain:repo1.maven.org)",
+      "WebFetch(domain:square.github.io)",
+      "Bash(grep:*)"
     ]
   }
 }
