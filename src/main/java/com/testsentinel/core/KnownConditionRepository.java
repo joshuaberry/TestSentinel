@@ -22,7 +22,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * Loads, matches, and persists KnownCondition patterns.
  *
  * Patterns are stored in a JSON file on disk and held in memory at runtime.
- * Matching runs entirely in-process — no network, no API call.
+ * Matching runs entirely in-process -- no network, no API call.
  *
  * ## Thread Safety
  * Uses CopyOnWriteArrayList for the in-memory store. findExactMatch() is safe
@@ -40,12 +40,12 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * (more battle-tested patterns are preferred).
  *
  * ## Signal Fields Evaluated
- *   urlPattern          — substring of ConditionEvent.currentUrl
- *   locatorValuePattern — substring of ConditionEvent.locatorValue
- *   exceptionType       — substring of ConditionEvent.stackTrace
- *   domContains         — substring of ConditionEvent.domSnapshot
- *   conditionType       — exact match of ConditionEvent.conditionType.name()
- *   messageContains     — substring of ConditionEvent.message
+ *   urlPattern          -- substring of ConditionEvent.currentUrl
+ *   locatorValuePattern -- substring of ConditionEvent.locatorValue
+ *   exceptionType       -- substring of ConditionEvent.stackTrace
+ *   domContains         -- substring of ConditionEvent.domSnapshot
+ *   conditionType       -- exact match of ConditionEvent.conditionType.name()
+ *   messageContains     -- substring of ConditionEvent.message
  */
 public class KnownConditionRepository {
 
@@ -69,11 +69,11 @@ public class KnownConditionRepository {
     /**
      * (Re)loads all patterns from the JSON file on disk.
      * Disabled patterns (enabled=false) are filtered out of the active set.
-     * Safe to call at runtime — replaces the in-memory list atomically.
+     * Safe to call at runtime -- replaces the in-memory list atomically.
      */
     public void reload() {
         if (!Files.exists(storePath)) {
-            log.info("TestSentinel KnowledgeBase: no file at {} — starting empty", storePath);
+            log.info("TestSentinel KnowledgeBase: no file at {} -- starting empty", storePath);
             return;
         }
         try {

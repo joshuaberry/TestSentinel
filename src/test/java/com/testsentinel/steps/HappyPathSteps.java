@@ -70,7 +70,7 @@ public class HappyPathSteps {
         assertThat(page.isFlashMessageSuccess())
             .as("Flash message should confirm successful login")
             .isTrue();
-        log.info("HappyPathSteps: Flash message confirmed success — '{}'",
+        log.info("HappyPathSteps: Flash message confirmed success -- '{}'",
             page.getFlashMessageText().trim());
     }
 
@@ -80,7 +80,7 @@ public class HappyPathSteps {
         assertThat(page.isSecurePageLoaded())
             .as("Secure area logout button should be visible after login")
             .isTrue();
-        log.info("HappyPathSteps: Secure area loaded — '{}'", page.getSecureHeadingText());
+        log.info("HappyPathSteps: Secure area loaded -- '{}'", page.getSecureHeadingText());
     }
 
     @Then("the page title is {string}")
@@ -98,6 +98,6 @@ public class HappyPathSteps {
         assertThat(ctx.getLastInsight())
             .as("No TestSentinel insight should have been produced on the happy path")
             .isNull();
-        log.info("HappyPathSteps: Confirmed — no TestSentinel analysis triggered");
+        log.info("HappyPathSteps: Confirmed -- no TestSentinel analysis triggered");
     }
 }

@@ -12,7 +12,7 @@ import java.util.List;
  * Applies risk-gating logic to an ActionPlan and presents filtered recommendations
  * to the test framework.
  *
- * Phase 2 produces an ActionPlan with all recommended steps — including MEDIUM and HIGH
+ * Phase 2 produces an ActionPlan with all recommended steps -- including MEDIUM and HIGH
  * risk steps that should never be auto-executed. The ActionPlanAdvisor is the enforcement
  * layer that ensures the framework only acts on steps it has been explicitly configured to act on.
  *
@@ -103,12 +103,12 @@ public class ActionPlanAdvisor {
         ActionPlan plan = insight.getActionPlan();
         ActionStep.RiskLevel maxRisk = config.getMaxRiskLevel();
 
-        log.info("┌── TestSentinel Action Plan ─────────────────────────────────────┐");
-        log.info("│  Strategy   : {}", plan.getPlanSummary());
-        log.info("│  Confidence : {}%  |  Requires Human: {}",
+        log.info("┌-- TestSentinel Action Plan -------------------------------------┐");
+        log.info("|  Strategy   : {}", plan.getPlanSummary());
+        log.info("|  Confidence : {}%  |  Requires Human: {}",
             Math.round(plan.getPlanConfidence() * 100),
             plan.isRequiresHuman() ? "YES" : "No");
-        log.info("│  ─────────────────────────────────────────────────────────────  │");
+        log.info("|  -------------------------------------------------------------  |");
 
         for (int i = 0; i < plan.getActions().size(); i++) {
             ActionStep step = plan.getActions().get(i);
@@ -116,18 +116,18 @@ public class ActionPlanAdvisor {
                 step.getRiskLevel().ordinal() <= maxRisk.ordinal();
             String tag = executable ? "RECOMMEND" : "ADVISORY ";
             String params = formatParams(step);
-            log.info("│  [{}] [{}] {} {}  {} {}%",
+            log.info("|  [{}] [{}] {} {}  {} {}%",
                 i + 1, tag, step.getActionType(), params,
                 step.getRiskLevel(), Math.round(step.getConfidence() * 100));
             if (step.getRationale() != null) {
-                log.info("│        → {}", step.getRationale());
+                log.info("|        -> {}", step.getRationale());
             }
         }
 
         if (plan.isRequiresHuman()) {
-            log.info("│  ⚠  Human review required before proceeding               ⚠  │");
+            log.info("|  !  Human review required before proceeding               !  |");
         }
-        log.info("└────────────────────────────────────────────────────────────────┘");
+        log.info("└----------------------------------------------------------------┘");
     }
 
     /**

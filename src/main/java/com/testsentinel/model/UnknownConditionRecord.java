@@ -22,7 +22,7 @@ import java.time.Instant;
  *          and set patternCreatedId to the new pattern's id.
  *        - If it's a one-off or noise: set status=IGNORED with notes.
  *        - If it needs investigation: set status=REVIEWED with notes.
- *   4. Re-run the suite — new KB patterns resolve the condition locally.
+ *   4. Re-run the suite -- new KB patterns resolve the condition locally.
  *
  * ## Append-Only Contract
  *
@@ -37,7 +37,7 @@ public class UnknownConditionRecord {
     public enum Status {
         NEW,             // Not yet reviewed
         REVIEWED,        // Reviewed; engineer added notes but no KB pattern yet
-        PATTERN_CREATED, // KB pattern was created — future occurrences resolve locally
+        PATTERN_CREATED, // KB pattern was created -- future occurrences resolve locally
         IGNORED          // One-off or noise; will not be patterned
     }
 

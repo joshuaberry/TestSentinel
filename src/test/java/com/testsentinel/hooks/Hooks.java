@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.LinkedHashMap;
 
 /**
- * Per-scenario Cucumber hooks — @Before and @After only.
+ * Per-scenario Cucumber hooks -- @Before and @After only.
  *
  * Each scenario gets a fresh TestSentinelClient for knowledge base isolation:
  * patterns added in one scenario do not affect other scenarios within the same run.
@@ -39,7 +39,7 @@ public class Hooks {
 
     @Before
     public void setUpScenario(Scenario scenario) {
-        log.info("─── Scenario START: {} ───", scenario.getName());
+        log.info("--- Scenario START: {} ---", scenario.getName());
 
         // Fresh client per scenario for KB isolation
         TestSentinelConfig config   = SentinelFactory.buildConfig();
@@ -51,7 +51,7 @@ public class Hooks {
         ctx.setConfig(config);
         ctx.setPhase2Enabled(config.isPhase2Enabled());
 
-        // Fresh listener per scenario — clean step history, correct test name
+        // Fresh listener per scenario -- clean step history, correct test name
         TestSentinelListener listener = new TestSentinelListener(
             sentinel,
             scenario.getName(),
@@ -94,13 +94,13 @@ public class Hooks {
         SuiteHooks.register(scenario.getName(), history);
 
         DriverFactory.quit(ctx.getDriver());
-        log.info("─── Scenario END: {} — {} ───",
+        log.info("--- Scenario END: {} -- {} ---",
             scenario.getName(), scenario.isFailed() ? "FAILED" : "PASSED");
     }
 
     private void logScenarioSummary(String scenarioName, List<TestSentinelClient.InsightRecord> history) {
         if (history.isEmpty()) {
-            log.info("TestSentinel [{}] — no insights tripped", scenarioName);
+            log.info("TestSentinel [{}] -- no insights tripped", scenarioName);
             return;
         }
 
@@ -118,7 +118,7 @@ public class Hooks {
             var recs = entry.getValue();
             var ins = recs.get(0).insight();
             String cntSuffix = recs.size() > 1 ? " ×" + recs.size() : "";
-            log.info("  {}. [{}] {} → {}{}", idx, entry.getKey(),
+            log.info("  {}. [{}] {} -> {}{}", idx, entry.getKey(),
                 ins.getConditionCategory(),
                 ins.getSuggestedTestOutcome() != null ? ins.getSuggestedTestOutcome() : "N/A",
                 cntSuffix);

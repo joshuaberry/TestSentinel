@@ -16,13 +16,13 @@ import org.openqa.selenium.WebDriver;
  * is created per scenario, torn down in the @After hook.
  *
  * Holds:
- *   driver         — the WebDriver for the current scenario
- *   sentinel       — the TestSentinelClient (shared across all scenarios)
- *   advisor        — the ActionPlanAdvisor (shared across all scenarios)
- *   listener       — the per-scenario listener (resets between scenarios)
- *   lastInsight    — the most recently produced InsightResponse
- *   lastEvent      — the most recently analyzed ConditionEvent (for KB promotion)
- *   apiKeyPresent  — whether ANTHROPIC_API_KEY is available in the environment
+ *   driver         -- the WebDriver for the current scenario
+ *   sentinel       -- the TestSentinelClient (shared across all scenarios)
+ *   advisor        -- the ActionPlanAdvisor (shared across all scenarios)
+ *   listener       -- the per-scenario listener (resets between scenarios)
+ *   lastInsight    -- the most recently produced InsightResponse
+ *   lastEvent      -- the most recently analyzed ConditionEvent (for KB promotion)
+ *   apiKeyPresent  -- whether ANTHROPIC_API_KEY is available in the environment
  */
 public class ScenarioContext {
 

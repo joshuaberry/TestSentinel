@@ -11,9 +11,9 @@ package com.testsentinel.executor;
  *      {@link ActionHandlerRegistry} can discover them via classpath scanning
  *
  * Implementations should:
- *   - Respect {@link ActionContext#isDryRun()} — log intent but do nothing when true
- *   - Never throw unchecked exceptions — catch and return {@link ActionResult#failed}
- *   - Be stateless — the same instance is reused across all scenarios
+ *   - Respect {@link ActionContext#isDryRun()} -- log intent but do nothing when true
+ *   - Never throw unchecked exceptions -- catch and return {@link ActionResult#failed}
+ *   - Be stateless -- the same instance is reused across all scenarios
  */
 public interface ActionHandler {
     ActionResult execute(ActionContext context);

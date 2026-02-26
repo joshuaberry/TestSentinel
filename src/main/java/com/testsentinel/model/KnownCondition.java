@@ -11,11 +11,11 @@ import java.util.List;
  * without calling the Claude API.
  *
  * When a ConditionEvent matches a KnownCondition with sufficient signal agreement,
- * the InsightResponse is constructed directly from the stored fields — zero API cost,
+ * the InsightResponse is constructed directly from the stored fields -- zero API cost,
  * sub-millisecond resolution.
  *
  * ## Lifecycle
- * 1. A condition fires. Claude analyzes it (first occurrence — API call made).
+ * 1. A condition fires. Claude analyzes it (first occurrence -- API call made).
  * 2. The resolution is confirmed as correct by an engineer.
  * 3. sentinel.recordResolution(event, insight, "pattern-id", "engineer") promotes
  *    it to a KnownCondition and persists it to known-conditions.json.
@@ -69,7 +69,7 @@ public class KnownCondition {
     private Instant lastHit;
     private String addedBy;
     private Instant addedAt;
-    private String notes;     // Free-text engineer notes — not used in matching
+    private String notes;     // Free-text engineer notes -- not used in matching
 
     public KnownCondition() {
         this.enabled = true;

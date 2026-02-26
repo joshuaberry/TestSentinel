@@ -17,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Unit tests for individual ConditionChecker implementations.
  *
  * These tests verify checker signal detection using synthetic ConditionEvent objects.
- * No WebDriver, no network, no browser — pure Java.
+ * No WebDriver, no network, no browser -- pure Java.
  *
  * Checkers that rely on a live WebDriver (ElementInDomChecker, OverlayChecker live scan)
  * are tested via DOM snapshot and event-only paths; WebDriver is passed as null, relying
@@ -25,7 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class CheckerUnitTest {
 
-    // Instantiated directly — same package gives access to package-private checkers
+    // Instantiated directly -- same package gives access to package-private checkers
     private PageTimeoutChecker     pageTimeoutChecker;
     private StaleElementChecker    staleElementChecker;
     private AssertionFailureChecker assertionFailureChecker;
@@ -46,7 +46,7 @@ public class CheckerUnitTest {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // ConditionCheckerRegistry — discovery smoke test
+    // ConditionCheckerRegistry -- discovery smoke test
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
@@ -268,7 +268,7 @@ public class CheckerUnitTest {
 
         CheckerResult result = assertionFailureChecker.check(null, event);
 
-        // Assertion failures have no auto-executable action plan — human review needed
+        // Assertion failures have no auto-executable action plan -- human review needed
         assertThat(result.isMatched()).isTrue();
         assertThat(result.getActionPlan()).isNull();
         assertThat(result.getSuggestedOutcome()).isEqualTo("FAIL_WITH_CONTEXT");
@@ -367,7 +367,7 @@ public class CheckerUnitTest {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // OverlayChecker — DOM snapshot path (no WebDriver needed)
+    // OverlayChecker -- DOM snapshot path (no WebDriver needed)
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
@@ -405,7 +405,7 @@ public class CheckerUnitTest {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // ElementInDomChecker — null driver → noMatch (element query impossible)
+    // ElementInDomChecker -- null driver → noMatch (element query impossible)
     // ════════════════════════════════════════════════════════════════════════
 
     @Test

@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
  *
  *   1. Steps are executed in order (step[0] first) unless in-plan branching
  *      redirects execution via {@code onSuccess} / {@code onFailure} step ids.
- *   2. A step whose riskLevel exceeds maxRiskLevel is skipped — logged as a
+ *   2. A step whose riskLevel exceeds maxRiskLevel is skipped -- logged as a
  *      recommendation but not acted upon.
  *   3. If a step has {@code requiresVerification=true} and its handler returns
  *      FAILED, execution stops immediately (fail-fast).
@@ -73,7 +73,7 @@ public class ActionPlanExecutor {
      * @param insight       The insight whose ActionPlan will be executed
      * @param driver        Active WebDriver
      * @param event         The original ConditionEvent that triggered analysis
-     * @param priorAttempts Previous cascade results — passed to ActionContext
+     * @param priorAttempts Previous cascade results -- passed to ActionContext
      *                      so handlers can avoid repeating failed actions
      */
     public List<ActionResult> execute(InsightResponse insight,
@@ -81,7 +81,7 @@ public class ActionPlanExecutor {
                                        ConditionEvent event,
                                        List<CascadeResult> priorAttempts) {
         if (!insight.hasActionPlan()) {
-            log.debug("ActionPlanExecutor: No action plan — nothing to execute");
+            log.debug("ActionPlanExecutor: No action plan -- nothing to execute");
             return Collections.emptyList();
         }
 
@@ -109,7 +109,7 @@ public class ActionPlanExecutor {
 
             // Fail-fast on verified steps
             if (result.isFailed() && step.isRequiresVerification()) {
-                log.warn("ActionPlanExecutor: Step failed with requiresVerification=true — halting");
+                log.warn("ActionPlanExecutor: Step failed with requiresVerification=true -- halting");
                 break;
             }
 
@@ -120,14 +120,14 @@ public class ActionPlanExecutor {
             if (branchStepId != null && stepById.containsKey(branchStepId)) {
                 ActionStep target = stepById.get(branchStepId);
                 index = steps.indexOf(target);
-                log.info("ActionPlanExecutor: Branch {} → step id='{}'", branchKey, branchStepId);
+                log.info("ActionPlanExecutor: Branch {} -> step id='{}'", branchKey, branchStepId);
             } else {
                 index++;
             }
         }
 
         if (visited >= maxVisited) {
-            log.warn("ActionPlanExecutor: Branch loop guard triggered — execution stopped");
+            log.warn("ActionPlanExecutor: Branch loop guard triggered -- execution stopped");
         }
 
         logSummary(results);
@@ -146,7 +146,7 @@ public class ActionPlanExecutor {
                                       ConditionEvent event, List<CascadeResult> priorAttempts) {
         ActionType type = step.getActionType();
 
-        log.info("ActionPlanExecutor: Visit #{} — type={}, risk={}, confidence={}, desc='{}'",
+        log.info("ActionPlanExecutor: Visit #{} -- type={}, risk={}, confidence={}, desc='{}'",
             visitNum, type, step.getRiskLevel(),
             String.format("%.0f%%", step.getConfidence() * 100),
             step.getDescription());
@@ -154,9 +154,9 @@ public class ActionPlanExecutor {
         // ── Risk gate ─────────────────────────────────────────────────────────
         if (!isWithinRiskLimit(step)) {
             String msg = String.format(
-                "Skipped (risk=%s exceeds maxRiskLevel=%s) — Recommendation: %s",
+                "Skipped (risk=%s exceeds maxRiskLevel=%s) -- Recommendation: %s",
                 step.getRiskLevel(), maxRiskLevel, step.getDescription());
-            log.info("ActionPlanExecutor: SKIPPED — {}", msg);
+            log.info("ActionPlanExecutor: SKIPPED -- {}", msg);
             return ActionResult.skipped(msg);
         }
 
@@ -170,7 +170,7 @@ public class ActionPlanExecutor {
                     driver, step, insight, event, priorAttempts, maxRiskLevel, dryRun);
                 try {
                     ActionResult result = handler.execute(ctx);
-                    log.info("ActionPlanExecutor: {} — {}", result.getOutcome(), result.getMessage());
+                    log.info("ActionPlanExecutor: {} -- {}", result.getOutcome(), result.getMessage());
                     return result;
                 } catch (Exception e) {
                     log.error("ActionPlanExecutor: Handler threw unexpectedly: {}", e.getMessage(), e);
@@ -179,7 +179,7 @@ public class ActionPlanExecutor {
             })
             .orElseGet(() -> {
                 ActionResult r = ActionResult.notFound(type.name());
-                log.warn("ActionPlanExecutor: NOT_FOUND — {}", r.getMessage());
+                log.warn("ActionPlanExecutor: NOT_FOUND -- {}", r.getMessage());
                 return r;
             });
     }
@@ -194,7 +194,7 @@ public class ActionPlanExecutor {
         long skipped  = results.stream().filter(ActionResult::isSkipped).count();
         long failed   = results.stream().filter(ActionResult::isFailed).count();
         long notFound = results.stream().filter(ActionResult::isNotFound).count();
-        log.info("ActionPlanExecutor: Complete — executed={}, skipped={}, failed={}, notFound={}",
+        log.info("ActionPlanExecutor: Complete -- executed={}, skipped={}, failed={}, notFound={}",
             executed, skipped, failed, notFound);
     }
 }

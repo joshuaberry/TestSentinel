@@ -18,13 +18,13 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Option 4 orchestrator — cascaded condition analysis with local-first, API-fallback.
+ * Option 4 orchestrator -- cascaded condition analysis with local-first, API-fallback.
  *
  * ## Resolution order per cascade pass
  *
  *   1. LOCAL CHECKERS (fastest, free)
  *      Registered {@link ConditionChecker} implementations inspect the live driver state
- *      in priority order. The first match short-circuits — no KB or API call is made.
+ *      in priority order. The first match short-circuits -- no KB or API call is made.
  *      Checkers cover known patterns: page timeouts, overlays, auth redirects, stale
  *      elements, wrong page, hidden elements.
  *
@@ -104,7 +104,7 @@ public class CascadedInsightEngine {
      * Analyzes the condition event using the cascade strategy and returns the
      * full history of cascade passes. The final element is the last attempt.
      *
-     * Never throws — all exceptions are caught and returned as error insights.
+     * Never throws -- all exceptions are caught and returned as error insights.
      */
     public List<CascadeResult> analyze(WebDriver driver, ConditionEvent event) {
         List<CascadeResult> history = new ArrayList<>();
@@ -113,19 +113,19 @@ public class CascadedInsightEngine {
             maxDepth, event.getConditionType(), event.getCurrentUrl());
 
         for (int depth = 1; depth <= maxDepth; depth++) {
-            log.info("CascadedInsightEngine: ── Cascade pass {}/{} ──────────────────────", depth, maxDepth);
+            log.info("CascadedInsightEngine: -- Cascade pass {}/{} ----------------------", depth, maxDepth);
 
             CascadeResult result = runPass(depth, driver, event, history);
             history.add(result);
 
             // Stop if resolved or if the outcome says to stop
             if (result.isConditionResolved()) {
-                log.info("CascadedInsightEngine: Condition resolved at depth {} — stopping", depth);
+                log.info("CascadedInsightEngine: Condition resolved at depth {} -- stopping", depth);
                 break;
             }
 
             if (shouldStopCascade(result)) {
-                log.info("CascadedInsightEngine: Stopping cascade — outcome={}",
+                log.info("CascadedInsightEngine: Stopping cascade -- outcome={}",
                     result.getInsight() != null ? result.getInsight().getSuggestedTestOutcome() : "null");
                 break;
             }
@@ -156,7 +156,7 @@ public class CascadedInsightEngine {
             }
 
             if (checkerResult.isMatched()) {
-                log.info("CascadedInsightEngine: [LOCAL CHECKER] '{}' matched — category={}, confidence={}",
+                log.info("CascadedInsightEngine: [LOCAL CHECKER] '{}' matched -- category={}, confidence={}",
                     checkerResult.getCheckerId(), checkerResult.getCategory(),
                     String.format("%.0f%%", checkerResult.getConfidence() * 100));
 
@@ -176,7 +176,7 @@ public class CascadedInsightEngine {
         }
 
         // ── Step 2: KB + API via TestSentinelClient ───────────────────────────
-        log.info("CascadedInsightEngine: No local checker matched — delegating to TestSentinelClient");
+        log.info("CascadedInsightEngine: No local checker matched -- delegating to TestSentinelClient");
         InsightResponse insight;
         try {
             insight = sentinelClient.analyzeEvent(event);
@@ -225,13 +225,13 @@ public class CascadedInsightEngine {
             try {
                 CheckerResult r = checker.check(driver, event);
                 if (r.isMatched()) {
-                    log.debug("CascadedInsightEngine: Condition still present — '{}' matched on re-check",
+                    log.debug("CascadedInsightEngine: Condition still present -- '{}' matched on re-check",
                         r.getCheckerId());
                     return false;
                 }
             } catch (Exception ignored) {}
         }
-        log.debug("CascadedInsightEngine: No checker matched on re-check — condition appears resolved");
+        log.debug("CascadedInsightEngine: No checker matched on re-check -- condition appears resolved");
         return true;
     }
 
@@ -290,13 +290,13 @@ public class CascadedInsightEngine {
         insight.setAnalysisLatencyMs(0);
         insight.setAnalyzedAt(Instant.now());
         insight.setRawClaudeResponse("[LOCAL CHECKER] " + r.getCheckerId());
-        // Note: resolvedFromPattern stays null — this was a live checker, not a KB pattern.
+        // Note: resolvedFromPattern stays null -- this was a live checker, not a KB pattern.
         // Callers can distinguish via CascadeResult.getSource() == LOCAL_CHECKER.
         return insight;
     }
 
     private void logFinalSummary(List<CascadeResult> history) {
-        log.info("CascadedInsightEngine: Analysis complete — {} pass(es)", history.size());
+        log.info("CascadedInsightEngine: Analysis complete -- {} pass(es)", history.size());
         for (CascadeResult r : history) {
             log.info("  Pass {}: source={}, category={}, resolved={}, actions={}",
                 r.depth(), r.getSource(),

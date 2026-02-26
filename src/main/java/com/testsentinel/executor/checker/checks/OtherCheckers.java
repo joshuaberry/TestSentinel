@@ -24,7 +24,7 @@ import java.util.Map;
  *   - Page title contains "sign in", "log in", "session expired"
  *   - DOM snapshot contains login form keywords
  *
- * Priority 15 — URL check is instant; very definitive signal.
+ * Priority 15 -- URL check is instant; very definitive signal.
  */
 @ChecksCondition(id = "auth-redirect", priority = 15)
 class AuthRedirectChecker implements ConditionChecker {
@@ -69,16 +69,16 @@ class AuthRedirectChecker implements ConditionChecker {
         ActionStep skip = new ActionStep();
         skip.setActionType(ActionType.SKIP_TEST);
         skip.setParameters(Map.of("reason",
-            "Test session expired — authentication redirect detected. " +
+            "Test session expired -- authentication redirect detected. " +
             "Re-run after refreshing test credentials."));
-        skip.setDescription("Skip this test — session expired, re-auth required");
+        skip.setDescription("Skip this test -- session expired, re-auth required");
         skip.setConfidence(0.90);
         skip.setRiskLevel(ActionStep.RiskLevel.MEDIUM);
         skip.setRationale("Re-authenticating mid-test risks corrupting test state. Skip and re-run.");
 
         ActionPlan plan = new ActionPlan();
         plan.setActions(List.of(skip));
-        plan.setPlanSummary("Skip test — session expired, requires re-authentication");
+        plan.setPlanSummary("Skip test -- session expired, requires re-authentication");
         plan.setPlanConfidence(0.90);
         plan.setRequiresHuman(false);
         return plan;
@@ -88,10 +88,10 @@ class AuthRedirectChecker implements ConditionChecker {
 // ── StaleElementChecker ───────────────────────────────────────────────────────
 
 /**
- * Detects StaleElementReferenceException — the element was found but became
+ * Detects StaleElementReferenceException -- the element was found but became
  * detached from the DOM (typically due to a React/Angular re-render).
  *
- * Priority 10 — purely exception-message based, zero DOM interaction.
+ * Priority 10 -- purely exception-message based, zero DOM interaction.
  */
 @ChecksCondition(id = "stale-element", priority = 10)
 class StaleElementChecker implements ConditionChecker {
@@ -110,7 +110,7 @@ class StaleElementChecker implements ConditionChecker {
             return CheckerResult.matched(
                 "stale-element",
                 InsightResponse.ConditionCategory.STALE_DOM,
-                "A stale element reference was detected — the DOM was re-rendered after the element " +
+                "A stale element reference was detected -- the DOM was re-rendered after the element " +
                 "was located, causing the reference to become invalid. This is typically caused by a " +
                 "React or Angular component re-mounting.",
                 0.95,
@@ -155,7 +155,7 @@ class StaleElementChecker implements ConditionChecker {
  * expected URL stored in the ConditionEvent.
  *
  * Only fires when both currentUrl and expectedUrl are present on the event.
- * Priority 5 — pure string comparison, zero overhead.
+ * Priority 5 -- pure string comparison, zero overhead.
  */
 @ChecksCondition(id = "wrong-page", priority = 5)
 class WrongPageChecker implements ConditionChecker {
@@ -207,12 +207,12 @@ class WrongPageChecker implements ConditionChecker {
 
 /**
  * Detects the case where an element IS present in the DOM but is hidden or
- * off-screen — distinct from element-not-found (which means it's absent entirely).
+ * off-screen -- distinct from element-not-found (which means it's absent entirely).
  *
  * Checks whether the locator value from the ConditionEvent finds elements that
  * are present but not displayed.
  *
- * Priority 30 — requires a live DOM query but only runs for LOCATOR_NOT_FOUND.
+ * Priority 30 -- requires a live DOM query but only runs for LOCATOR_NOT_FOUND.
  */
 @ChecksCondition(id = "element-hidden", priority = 30)
 class ElementInDomChecker implements ConditionChecker {
@@ -289,7 +289,7 @@ class ElementInDomChecker implements ConditionChecker {
  *   - Stack trace contains common assertion libraries (assertj, junit, testng)
  *   - Message contains typical assertion failure phrases
  *
- * Priority 25 — purely text-based, no DOM or network interaction.
+ * Priority 25 -- purely text-based, no DOM or network interaction.
  */
 @ChecksCondition(id = "assertion-failure", priority = 25)
 class AssertionFailureChecker implements ConditionChecker {
@@ -323,11 +323,11 @@ class AssertionFailureChecker implements ConditionChecker {
             return CheckerResult.matched(
                 "assertion-failure",
                 InsightResponse.ConditionCategory.APPLICATION_BUG,
-                "A test assertion failed — the application returned a value that did not " +
+                "A test assertion failed -- the application returned a value that did not " +
                 "match the expected state. This is typically a genuine test failure (application bug " +
                 "or incorrect test data) rather than a test infrastructure problem.",
                 0.88,
-                null,   // No action plan — assertion failures require human investigation
+                null,   // No action plan -- assertion failures require human investigation
                 InsightResponse.SuggestedOutcome.FAIL_WITH_CONTEXT.name()
             );
         } catch (Exception e) {

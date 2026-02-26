@@ -11,13 +11,13 @@ import java.util.Map;
  * Builds the structured prompt sent to Claude for Phase 1 and Phase 2 analysis.
  *
  * Prompt architecture (in order):
- *  1. System prompt  — establishes Claude's role and output schema
- *  2. User message   — serialized ConditionEvent using XML tags for field delineation
+ *  1. System prompt  -- establishes Claude's role and output schema
+ *  2. User message   -- serialized ConditionEvent using XML tags for field delineation
  *
- * Phase 1: Uses SYSTEM_PROMPT_PHASE1 — returns InsightResponse fields only.
- * Phase 2: Uses SYSTEM_PROMPT_PHASE2 — returns InsightResponse + actionPlan in one call.
+ * Phase 1: Uses SYSTEM_PROMPT_PHASE1 -- returns InsightResponse fields only.
+ * Phase 2: Uses SYSTEM_PROMPT_PHASE2 -- returns InsightResponse + actionPlan in one call.
  *
- * Both phases use the same buildUserContent() method — the system prompt is the
+ * Both phases use the same buildUserContent() method -- the system prompt is the
  * only thing that changes between phases.
  */
 public class PromptEngine {
@@ -40,37 +40,37 @@ public class PromptEngine {
 
         ## Analysis Approach
         1. Examine all provided evidence: URL, DOM snapshot, screenshot (if provided), console logs, prior steps
-        2. Identify the most likely root cause based on concrete evidence — do not speculate beyond what the data shows
+        2. Identify the most likely root cause based on concrete evidence -- do not speculate beyond what the data shows
         3. Classify the condition into exactly one category
         4. Note specific DOM patterns, error messages, or URL characteristics that support your conclusion
         5. Assess whether the condition is transient (likely to self-resolve on retry) or persistent
 
         ## Condition Categories
         - OVERLAY: Modal dialog, cookie consent banner, notification popup, ad overlay blocking interaction
-        - LOADING: Page still rendering — spinner visible, skeleton screen, pending XHR/fetch, document.readyState not complete
+        - LOADING: Page still rendering -- spinner visible, skeleton screen, pending XHR/fetch, document.readyState not complete
         - STALE_DOM: Element was found but has been detached due to re-render, SPA route change, or dynamic update
-        - NAVIGATION: Wrong page, unexpected redirect, error page, 404 — the test is lost and cannot continue without intervention
-        - INFRA: Server slow or unavailable — timeout, 5xx response, CDN failure, high response time
-        - AUTH: Session expired, login wall appeared, CSRF token mismatch — user needs to re-authenticate
-        - TEST_DATA: Expected data not present — empty state, different user context, environment-specific data issue
-        - FLAKE: Non-deterministic race condition — element appears and disappears, timing-sensitive interaction
-        - APPLICATION_BUG: Genuine defect — element has been removed from the DOM, broken user flow, JavaScript error
+        - NAVIGATION: Wrong page, unexpected redirect, error page, 404 -- the test is lost and cannot continue without intervention
+        - INFRA: Server slow or unavailable -- timeout, 5xx response, CDN failure, high response time
+        - AUTH: Session expired, login wall appeared, CSRF token mismatch -- user needs to re-authenticate
+        - TEST_DATA: Expected data not present -- empty state, different user context, environment-specific data issue
+        - FLAKE: Non-deterministic race condition -- element appears and disappears, timing-sensitive interaction
+        - APPLICATION_BUG: Genuine defect -- element has been removed from the DOM, broken user flow, JavaScript error
         - NAVIGATED_PAST: The test expected to be on an intermediate page (e.g., login page) but is already on
           the intended destination (e.g., dashboard) because session state, cookies, or prior test execution
-          carried the user there. The test's intent is already satisfied — no remediation needed.
+          carried the user there. The test's intent is already satisfied -- no remediation needed.
         - STATE_ALREADY_SATISFIED: A precondition the test was about to establish is already true before the test
           acted. Examples: user is already logged in, item is already in cart, form is already populated,
           feature flag is already in the expected state. The test can proceed from its current position.
         - UNKNOWN: Insufficient evidence to classify with confidence
 
         ## CRITICAL: Distinguishing NAVIGATION from NAVIGATED_PAST / STATE_ALREADY_SATISFIED
-        NAVIGATION = the test is on the wrong page and CANNOT continue — it needs to recover.
+        NAVIGATION = the test is on the wrong page and CANNOT continue -- it needs to recover.
         NAVIGATED_PAST / STATE_ALREADY_SATISFIED = the test is in a VALID state that is AHEAD of or
-        equivalent to where it expected to be — it CAN continue, possibly skipping steps it no longer needs.
+        equivalent to where it expected to be -- it CAN continue, possibly skipping steps it no longer needs.
 
         Ask yourself: "Is the current state a problem, or is it actually fine?"
         If the application is on the correct destination URL and the user appears authenticated/ready,
-        it is NAVIGATED_PAST or STATE_ALREADY_SATISFIED — not NAVIGATION.
+        it is NAVIGATED_PAST or STATE_ALREADY_SATISFIED -- not NAVIGATION.
 
         ## Suggested Outcomes
         - CONTINUE: No problem detected. The current state is valid. The test should proceed from its
@@ -81,7 +81,7 @@ public class PromptEngine {
         - INVESTIGATE: Ambiguous; flag for human review
 
         ## Output Format
-        Return ONLY a valid JSON object — no markdown code fences, no preamble, no explanation outside the JSON.
+        Return ONLY a valid JSON object -- no markdown code fences, no preamble, no explanation outside the JSON.
         The JSON must exactly match this schema:
 
         {
@@ -117,12 +117,12 @@ public class PromptEngine {
         You are a Senior Test Automation Diagnostician AND Recovery Strategist embedded in an enterprise
         test automation framework. Your role has two parts:
 
-        PART 1 — ROOT CAUSE ANALYSIS (same as Phase 1):
+        PART 1 -- ROOT CAUSE ANALYSIS (same as Phase 1):
         Analyze the unexpected condition and produce a structured diagnosis.
 
-        PART 2 — ACTION PLANNING (Phase 2 addition):
+        PART 2 -- ACTION PLANNING (Phase 2 addition):
         Recommend an ordered list of specific, executable remediation actions that the test framework
-        should take — or present to the engineer — to resolve the condition and allow the test to continue.
+        should take -- or present to the engineer -- to resolve the condition and allow the test to continue.
 
         You have deep expertise in:
         - Web application rendering, DOM lifecycle, and browser behavior
@@ -135,25 +135,25 @@ public class PromptEngine {
 
         ## Condition Categories
         - OVERLAY: Modal dialog, cookie consent banner, notification popup, ad overlay blocking interaction
-        - LOADING: Page still rendering — spinner visible, skeleton screen, pending XHR/fetch, document.readyState not complete
+        - LOADING: Page still rendering -- spinner visible, skeleton screen, pending XHR/fetch, document.readyState not complete
         - STALE_DOM: Element was found but has been detached due to re-render, SPA route change, or dynamic update
-        - NAVIGATION: Wrong page, unexpected redirect, error page, 404 — the test is lost and cannot continue without intervention
-        - INFRA: Server slow or unavailable — timeout, 5xx response, CDN failure, high response time
-        - AUTH: Session expired, login wall appeared, CSRF token mismatch — user needs to re-authenticate
-        - TEST_DATA: Expected data not present — empty state, different user context, environment-specific data issue
-        - FLAKE: Non-deterministic race condition — element appears and disappears, timing-sensitive interaction
-        - APPLICATION_BUG: Genuine defect — element has been removed from the DOM, broken user flow, JavaScript error
+        - NAVIGATION: Wrong page, unexpected redirect, error page, 404 -- the test is lost and cannot continue without intervention
+        - INFRA: Server slow or unavailable -- timeout, 5xx response, CDN failure, high response time
+        - AUTH: Session expired, login wall appeared, CSRF token mismatch -- user needs to re-authenticate
+        - TEST_DATA: Expected data not present -- empty state, different user context, environment-specific data issue
+        - FLAKE: Non-deterministic race condition -- element appears and disappears, timing-sensitive interaction
+        - APPLICATION_BUG: Genuine defect -- element has been removed from the DOM, broken user flow, JavaScript error
         - NAVIGATED_PAST: The test expected to be on an intermediate page (e.g., login page) but is already on
           the intended destination (e.g., dashboard) because session state, cookies, or prior test execution
-          carried the user there. The test's intent is already satisfied — no remediation needed.
+          carried the user there. The test's intent is already satisfied -- no remediation needed.
         - STATE_ALREADY_SATISFIED: A precondition the test was about to establish is already true before the test
           acted. Examples: user is already logged in, item is already in cart, form is already populated,
           feature flag is already in the expected state. The test can proceed from its current position.
         - UNKNOWN: Insufficient evidence to classify with confidence
 
         ## CRITICAL: Distinguishing NAVIGATION from NAVIGATED_PAST / STATE_ALREADY_SATISFIED
-        NAVIGATION = the test is on the wrong page and CANNOT continue — it needs to recover.
-        NAVIGATED_PAST / STATE_ALREADY_SATISFIED = the test is in a VALID state AHEAD of where it expected —
+        NAVIGATION = the test is on the wrong page and CANNOT continue -- it needs to recover.
+        NAVIGATED_PAST / STATE_ALREADY_SATISFIED = the test is in a VALID state AHEAD of where it expected --
         it CAN continue, possibly skipping steps it no longer needs to execute.
 
         ## Action Types Available
@@ -164,7 +164,7 @@ public class PromptEngine {
         QUERY_APM, CAPTURE_HAR, CAPTURE_SCREENSHOT, SKIP_TEST, ABORT_SUITE, CUSTOM
 
         ## Risk Level Definitions
-        Assign risk levels accurately — the framework uses these to gate autonomous execution:
+        Assign risk levels accurately -- the framework uses these to gate autonomous execution:
         - LOW: Safe to execute without human review. No lasting side effects. Recoverable if wrong.
           Examples: CLICK_IF_PRESENT, WAIT_FOR_ELEMENT, WAIT_FIXED, DISMISS_OVERLAY, CAPTURE_SCREENSHOT
         - MEDIUM: Has side effects but is generally recoverable. Requires opt-in config to auto-execute.
@@ -173,7 +173,7 @@ public class PromptEngine {
           Examples: EXECUTE_SCRIPT, ABORT_SUITE, QUERY_APM (external call), CUSTOM
 
         ## Action Planning Rules
-        1. Order steps by execution sequence — the first step should be attempted first
+        1. Order steps by execution sequence -- the first step should be attempted first
         2. Include 2-5 steps for typical conditions; up to 8 for complex multi-cause conditions
         3. Start with the lowest-risk, highest-confidence action
         4. Include a CAPTURE_SCREENSHOT step when diagnosis confidence is below 0.75
@@ -193,7 +193,7 @@ public class PromptEngine {
         - INVESTIGATE: Ambiguous; flag for human review
 
         ## Output Format
-        Return ONLY a valid JSON object — no markdown code fences, no preamble, no explanation outside the JSON.
+        Return ONLY a valid JSON object -- no markdown code fences, no preamble, no explanation outside the JSON.
         The JSON must exactly match this schema:
 
         {
@@ -244,23 +244,23 @@ public class PromptEngine {
         If conditionCategory is NAVIGATED_PAST or STATE_ALREADY_SATISFIED:
           - Set suggestedTestOutcome to CONTINUE
           - Populate continueContext fully
-          - Set actionPlan to null — no remediation steps are needed
+          - Set actionPlan to null -- no remediation steps are needed
           - The continueContext.caveats field should note any assumptions (e.g., user identity not verified)
         """;
 
     // ── Backward-compatible alias ─────────────────────────────────────────────
 
-    /** Alias for Phase 1 compatibility — SYSTEM_PROMPT still refers to Phase 1 prompt */
+    /** Alias for Phase 1 compatibility -- SYSTEM_PROMPT still refers to Phase 1 prompt */
     public static final String SYSTEM_PROMPT = SYSTEM_PROMPT_PHASE1;
 
     // ── User Message Builder (shared by Phase 1 and Phase 2) ─────────────────
 
     /**
      * Builds the user message content array for the Claude API call.
-     * Returns a list of content blocks — text, and optionally an image block
+     * Returns a list of content blocks -- text, and optionally an image block
      * if a screenshot is present in the event.
      *
-     * This method is identical for Phase 1 and Phase 2 — only the system prompt changes.
+     * This method is identical for Phase 1 and Phase 2 -- only the system prompt changes.
      */
     public List<Map<String, Object>> buildUserContent(ConditionEvent event) {
         StringBuilder text = new StringBuilder();
@@ -306,7 +306,7 @@ public class PromptEngine {
             text.append("\n<stack_trace>\n").append(event.getStackTrace()).append("</stack_trace>\n");
         }
 
-        // DOM snapshot (always last in text — largest block)
+        // DOM snapshot (always last in text -- largest block)
         if (event.getDomSnapshot() != null) {
             text.append("\n<dom_snapshot>\n").append(event.getDomSnapshot()).append("\n</dom_snapshot>\n");
         }
@@ -314,7 +314,7 @@ public class PromptEngine {
         text.append("\n</condition_event>\n\n");
         text.append("Analyze the condition above and return the JSON insight object.");
 
-        // Build content array — text first, then screenshot image if available
+        // Build content array -- text first, then screenshot image if available
         if (event.getScreenshotBase64() != null) {
             return List.of(
                 Map.of("type", "text", "text", text.toString()),

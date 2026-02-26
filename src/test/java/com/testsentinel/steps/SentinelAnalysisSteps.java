@@ -28,11 +28,11 @@ import static org.assertj.core.api.Assertions.fail;
 /**
  * Step definitions for Features 02, 03, 04, 05, and 06.
  *
- *   02 — Local KB analysis (missing elements, zero tokens)
- *   03 — Knowledge base management (pre-loaded, direct-add, reuse)
- *   04 — Navigation detection and CONTINUE outcome
- *   05 — Unknown condition recording
- *   06 — Autonomous action execution
+ *   02 -- Local KB analysis (missing elements, zero tokens)
+ *   03 -- Knowledge base management (pre-loaded, direct-add, reuse)
+ *   04 -- Navigation detection and CONTINUE outcome
+ *   05 -- Unknown condition recording
+ *   06 -- Autonomous action execution
  */
 public class SentinelAnalysisSteps {
 
@@ -45,7 +45,7 @@ public class SentinelAnalysisSteps {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // Triggering conditions — missing elements
+    // Triggering conditions -- missing elements
     // ════════════════════════════════════════════════════════════════════════
 
     @When("the test attempts to click a nonexistent element with id {string}")
@@ -55,7 +55,7 @@ public class SentinelAnalysisSteps {
             ctx.getDriver().findElement(By.id(elementId)).click();
             fail("Expected NoSuchElementException for id='" + elementId + "' but element was found.");
         } catch (NoSuchElementException e) {
-            log.info("SentinelAnalysisSteps: NoSuchElementException caught — TestSentinel intercepted");
+            log.info("SentinelAnalysisSteps: NoSuchElementException caught -- TestSentinel intercepted");
         }
         ctx.syncInsightFromListener();
         if (ctx.getLastInsight() == null && ctx.getSentinel() != null) {
@@ -70,7 +70,7 @@ public class SentinelAnalysisSteps {
             ctx.getDriver().findElement(By.cssSelector(cssSelector));
             fail("Expected NoSuchElementException for css='" + cssSelector + "' but element was found.");
         } catch (NoSuchElementException e) {
-            log.info("SentinelAnalysisSteps: NoSuchElementException caught — TestSentinel intercepted");
+            log.info("SentinelAnalysisSteps: NoSuchElementException caught -- TestSentinel intercepted");
         }
         ctx.syncInsightFromListener();
         if (ctx.getLastInsight() == null && ctx.getSentinel() != null) {
@@ -86,7 +86,7 @@ public class SentinelAnalysisSteps {
         assertThat(insight)
             .as("TestSentinel should have produced an InsightResponse")
             .isNotNull();
-        log.info("SentinelAnalysisSteps: Insight — category={}, outcome={}, source={}",
+        log.info("SentinelAnalysisSteps: Insight -- category={}, outcome={}, source={}",
             insight.getConditionCategory(),
             insight.getSuggestedTestOutcome(),
             insight.isLocalResolution()
@@ -175,7 +175,7 @@ public class SentinelAnalysisSteps {
     @And("the action plan should have at least one step")
     public void theActionPlanShouldHaveAtLeastOneStep() {
         if (!ctx.getLastInsight().hasActionPlan()) {
-            log.info("SentinelAnalysisSteps: No action plan — skipping step count assertion");
+            log.info("SentinelAnalysisSteps: No action plan -- skipping step count assertion");
             return;
         }
         assertThat(ctx.getLastInsight().getActionPlan().getActions().size())
@@ -186,7 +186,7 @@ public class SentinelAnalysisSteps {
     @And("each action step should have a valid risk level")
     public void eachActionStepShouldHaveAValidRiskLevel() {
         if (!ctx.getLastInsight().hasActionPlan()) {
-            log.info("SentinelAnalysisSteps: No action plan — skipping risk level assertion");
+            log.info("SentinelAnalysisSteps: No action plan -- skipping risk level assertion");
             return;
         }
         List<ActionStep> steps = ctx.getLastInsight().getActionPlan().getActions();
@@ -229,11 +229,11 @@ public class SentinelAnalysisSteps {
         assertThat(anyMediumOrHigh)
             .as("No MEDIUM or HIGH risk steps should be auto-executable at LOW risk limit")
             .isFalse();
-        log.info("SentinelAnalysisSteps: Confirmed — no MEDIUM/HIGH risk steps in executable set");
+        log.info("SentinelAnalysisSteps: Confirmed -- no MEDIUM/HIGH risk steps in executable set");
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // Feature 03 — Knowledge Base
+    // Feature 03 -- Knowledge Base
     // ════════════════════════════════════════════════════════════════════════
 
     @Given("the knowledge base contains the pattern {string}")
@@ -326,7 +326,7 @@ public class SentinelAnalysisSteps {
     @When("the engineer promotes the insight as pattern {string}")
     public void theEngineerPromotesTheInsightAsPattern(String patternId) {
         InsightResponse insight = ctx.getLastInsight();
-        assertThat(insight).as("Cannot promote — no insight was produced").isNotNull();
+        assertThat(insight).as("Cannot promote -- no insight was produced").isNotNull();
 
         ConditionEvent event = ctx.getLastEvent();
         if (event == null) {
@@ -345,17 +345,17 @@ public class SentinelAnalysisSteps {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // Feature 04 — Navigation Detection and CONTINUE
+    // Feature 04 -- Navigation Detection and CONTINUE
     // ════════════════════════════════════════════════════════════════════════
 
     @When("the test checks whether the current URL matches the expected URL")
     public void theTestChecksWhetherTheCurrentUrlMatchesTheExpectedUrl() {
         ConditionEvent event = ctx.getLastEvent();
         if (event == null) {
-            log.warn("SentinelAnalysisSteps: No expected URL stored — skipping URL check");
+            log.warn("SentinelAnalysisSteps: No expected URL stored -- skipping URL check");
             return;
         }
-        log.info("SentinelAnalysisSteps: URL check — current='{}', expected='{}'",
+        log.info("SentinelAnalysisSteps: URL check -- current='{}', expected='{}'",
             ctx.getDriver().getCurrentUrl(), event.getExpectedUrl());
     }
 
@@ -363,7 +363,7 @@ public class SentinelAnalysisSteps {
     public void theUrlsDoNotMatch() {
         ConditionEvent event = ctx.getLastEvent();
         if (event == null) {
-            log.info("SentinelAnalysisSteps: No event stored — assuming URL mismatch");
+            log.info("SentinelAnalysisSteps: No event stored -- assuming URL mismatch");
             return;
         }
         InsightResponse insight = ctx.getSentinel().analyzeWrongPage(
@@ -374,7 +374,7 @@ public class SentinelAnalysisSteps {
         );
         ctx.getSentinel().logInsight(insight);
         ctx.setLastInsight(insight);
-        log.info("SentinelAnalysisSteps: analyzeWrongPage — outcome={}, local={}",
+        log.info("SentinelAnalysisSteps: analyzeWrongPage -- outcome={}, local={}",
             insight.getSuggestedTestOutcome(), insight.isLocalResolution());
     }
 
@@ -395,10 +395,10 @@ public class SentinelAnalysisSteps {
         InsightResponse insight = ctx.getLastInsight();
         assertThat(insight).isNotNull();
         if (insight.isContinuable()) {
-            log.warn("SentinelAnalysisSteps: CONTINUE returned for this navigation — " +
+            log.warn("SentinelAnalysisSteps: CONTINUE returned for this navigation -- " +
                 "category={}, rootCause={}", insight.getConditionCategory(), insight.getRootCause());
         } else {
-            log.info("SentinelAnalysisSteps: Insight is not continuable — correct for wrong-page");
+            log.info("SentinelAnalysisSteps: Insight is not continuable -- correct for wrong-page");
         }
     }
 
@@ -406,14 +406,14 @@ public class SentinelAnalysisSteps {
     public void theInsightMayBeContinuableIfTheDestinationIsValid() {
         InsightResponse insight = ctx.getLastInsight();
         assertThat(insight).isNotNull();
-        log.info("SentinelAnalysisSteps: isContinuable={} — category={}, outcome={}",
+        log.info("SentinelAnalysisSteps: isContinuable={} -- category={}, outcome={}",
             insight.isContinuable(), insight.getConditionCategory(), insight.getSuggestedTestOutcome());
     }
 
     @When("the test checks if the checkboxes page is loaded before performing setup")
     public void theTestChecksIfTheCheckboxesPageIsLoadedBeforePerformingSetup() {
         InternetPage page = new InternetPage(ctx.getDriver());
-        log.info("SentinelAnalysisSteps: Pre-setup check — checkboxes loaded={}",
+        log.info("SentinelAnalysisSteps: Pre-setup check -- checkboxes loaded={}",
             page.isCheckboxesPageLoaded());
     }
 
@@ -421,7 +421,7 @@ public class SentinelAnalysisSteps {
     public void theCheckboxesPageIsConfirmedLoaded() {
         InternetPage page = new InternetPage(ctx.getDriver());
         assertThat(page.isCheckboxesPageLoaded())
-            .as("Checkboxes page should be loaded — STATE_ALREADY_SATISFIED scenario")
+            .as("Checkboxes page should be loaded -- STATE_ALREADY_SATISFIED scenario")
             .isTrue();
     }
 
@@ -429,9 +429,9 @@ public class SentinelAnalysisSteps {
     public void theTestCanProceedWithoutTestSentinelAnalysis() {
         ctx.syncInsightFromListener();
         if (ctx.getLastInsight() == null) {
-            log.info("SentinelAnalysisSteps: No TestSentinel analysis triggered — state already satisfied");
+            log.info("SentinelAnalysisSteps: No TestSentinel analysis triggered -- state already satisfied");
         } else {
-            log.info("SentinelAnalysisSteps: Insight present — isContinuable={}",
+            log.info("SentinelAnalysisSteps: Insight present -- isContinuable={}",
                 ctx.getLastInsight().isContinuable());
         }
     }
@@ -451,7 +451,7 @@ public class SentinelAnalysisSteps {
         );
         ctx.getSentinel().logInsight(insight);
         ctx.setLastInsight(insight);
-        log.info("SentinelAnalysisSteps: Wrong page analysis — isContinuable={}, local={}",
+        log.info("SentinelAnalysisSteps: Wrong page analysis -- isContinuable={}, local={}",
             insight.isContinuable(), insight.isLocalResolution());
     }
 
@@ -463,10 +463,10 @@ public class SentinelAnalysisSteps {
             assertThat(insight.getContinueContext())
                 .as("A continuable insight should have a ContinueContext")
                 .isNotNull();
-            log.info("SentinelAnalysisSteps: ContinueContext — observedState='{}'",
+            log.info("SentinelAnalysisSteps: ContinueContext -- observedState='{}'",
                 insight.getContinueContext().getObservedState());
         } else {
-            log.info("SentinelAnalysisSteps: Insight not continuable — ContinueContext check skipped");
+            log.info("SentinelAnalysisSteps: Insight not continuable -- ContinueContext check skipped");
         }
     }
 
@@ -484,15 +484,15 @@ public class SentinelAnalysisSteps {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // Feature 05 — Unknown Condition Recording
+    // Feature 05 -- Unknown Condition Recording
     // ════════════════════════════════════════════════════════════════════════
 
     @Given("no pattern matches the locator {string}")
     public void noPatternMatchesTheLocator(String locator) {
         // Verify no existing pattern would match this locator
         // (Since the locator contains a random suffix, no pattern should match)
-        log.info("SentinelAnalysisSteps: Precondition — no KB pattern expected to match '{}'", locator);
-        // No assertion needed — if a false match occurs the later assertions will catch it
+        log.info("SentinelAnalysisSteps: Precondition -- no KB pattern expected to match '{}'", locator);
+        // No assertion needed -- if a false match occurs the later assertions will catch it
     }
 
     @And("an unknown condition record should have been created for {string}")
@@ -504,7 +504,7 @@ public class SentinelAnalysisSteps {
         List<UnknownConditionRecord> records = ctx.getSentinel().getUnknownConditionRecords();
         boolean found = records.stream()
             .anyMatch(r -> r.getLocatorValue() != null && r.getLocatorValue().contains(
-                // Strip leading # or . if present — locatorValue is extracted without selector prefix
+                // Strip leading # or . if present -- locatorValue is extracted without selector prefix
                 locatorValue.startsWith("#") ? locatorValue.substring(1) : locatorValue
             ) || (r.getMessage() != null && r.getMessage().contains(locatorValue)));
 

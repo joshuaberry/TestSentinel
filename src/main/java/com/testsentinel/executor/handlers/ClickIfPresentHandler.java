@@ -23,7 +23,7 @@ public class ClickIfPresentHandler implements ActionHandler {
         try {
             List<WebElement> els = ctx.getDriver().findElements(By.cssSelector(selector));
             if (els.isEmpty() || !els.get(0).isDisplayed()) {
-                return ActionResult.skipped("Element '" + selector + "' not present — skipped safely");
+                return ActionResult.skipped("Element '" + selector + "' not present -- skipped safely");
             }
             els.get(0).click();
             return ActionResult.executed("Clicked present element: " + selector);

@@ -19,7 +19,7 @@ import java.lang.annotation.Target;
  * Rules:
  *   - The annotated class must implement {@link ConditionChecker}.
  *   - It must have a public no-arg constructor.
- *   - ids must be unique across all checkers — duplicates cause startup failure.
+ *   - ids must be unique across all checkers -- duplicates cause startup failure.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)

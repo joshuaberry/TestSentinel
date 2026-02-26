@@ -40,8 +40,8 @@ public class ConditionEvent {
     private String locatorValue;      // The actual selector string that failed
 
     // ── Page state ────────────────────────────────────────────────────────────
-    private String domSnapshot;       // driver.getPageSource() — truncated by ContextCollector
-    private String screenshotBase64;  // PNG encoded as base64 — enables vision analysis
+    private String domSnapshot;       // driver.getPageSource() -- truncated by ContextCollector
+    private String screenshotBase64;  // PNG encoded as base64 -- enables vision analysis
     private List<String> consoleLogs; // Browser console output
     private List<Map<String, Object>> networkRequests; // Pending/failed XHR/fetch
 

@@ -30,7 +30,7 @@ import java.util.concurrent.ConcurrentLinkedDeque;
  *   TestSentinelListener listener = new TestSentinelListener(sentinel, "LoginTest", "SmokeTests");
  *
  *   WebDriver driver = new EventFiringDecorator<>(listener).decorate(rawDriver);
- *   // Now use driver normally — TestSentinel intercepts automatically
+ *   // Now use driver normally -- TestSentinel intercepts automatically
  * </pre>
  *
  * The listener maintains a rolling step history (last 20 steps) based on
@@ -44,10 +44,10 @@ public class TestSentinelListener implements WebDriverListener {
     private final TestSentinelClient sentinel;
     private final Map<String, String> testMeta;
 
-    // Rolling history of what the test has done — used to enrich the prompt
+    // Rolling history of what the test has done -- used to enrich the prompt
     private final ConcurrentLinkedDeque<String> stepHistory = new ConcurrentLinkedDeque<>();
 
-    // The last InsightResponse produced — accessible to test code via getLastInsight()
+    // The last InsightResponse produced -- accessible to test code via getLastInsight()
     private volatile InsightResponse lastInsight;
 
     public TestSentinelListener(TestSentinelClient sentinel, String testName, String suiteName) {
@@ -92,7 +92,7 @@ public class TestSentinelListener implements WebDriverListener {
         Throwable cause = e.getCause();
         if (cause == null) return;
 
-        // Only analyze Selenium-level exceptions — not application-level assertions
+        // Only analyze Selenium-level exceptions -- not application-level assertions
         if (!cause.getClass().getPackageName().startsWith("org.openqa.selenium")) {
             return;
         }
@@ -102,7 +102,7 @@ public class TestSentinelListener implements WebDriverListener {
         // Extract the driver from the target if possible
         WebDriver driver = extractDriver(target);
         if (driver == null) {
-            log.warn("TestSentinel: Could not extract WebDriver from event target — skipping analysis");
+            log.warn("TestSentinel: Could not extract WebDriver from event target -- skipping analysis");
             return;
         }
 

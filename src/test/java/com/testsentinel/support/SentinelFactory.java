@@ -15,22 +15,22 @@ import java.nio.file.Paths;
 /**
  * Builds and configures the TestSentinelClient for the test project.
  *
- * Defaults to offline mode — no API key required.
+ * Defaults to offline mode -- no API key required.
  *
  * ## Environment Variables
  *
- *   TESTSENTINEL_OFFLINE_MODE        — "false" to enable Claude API calls (default: true)
- *   TESTSENTINEL_KNOWLEDGE_BASE_PATH — optional; path to known-conditions.json
- *   TESTSENTINEL_UNKNOWN_LOG_PATH    — path for unknown condition records (default: target/unknown-conditions-log.json)
- *   ANTHROPIC_API_KEY                — required only when TESTSENTINEL_OFFLINE_MODE=false
- *   TESTSENTINEL_PHASE2_ENABLED      — "true" to enable action plans (default: true)
- *   TESTSENTINEL_MAX_RISK_LEVEL      — LOW | MEDIUM | HIGH (default: LOW)
+ *   TESTSENTINEL_OFFLINE_MODE        -- "false" to enable Claude API calls (default: true)
+ *   TESTSENTINEL_KNOWLEDGE_BASE_PATH -- optional; path to known-conditions.json
+ *   TESTSENTINEL_UNKNOWN_LOG_PATH    -- path for unknown condition records (default: target/unknown-conditions-log.json)
+ *   ANTHROPIC_API_KEY                -- required only when TESTSENTINEL_OFFLINE_MODE=false
+ *   TESTSENTINEL_PHASE2_ENABLED      -- "true" to enable action plans (default: true)
+ *   TESTSENTINEL_MAX_RISK_LEVEL      -- LOW | MEDIUM | HIGH (default: LOW)
  *
  * ## System Properties (can also be set in Maven Surefire config)
  *
- *   kb.path         — overrides TESTSENTINEL_KNOWLEDGE_BASE_PATH
- *   offline.mode    — overrides TESTSENTINEL_OFFLINE_MODE
- *   unknown.log.path — overrides TESTSENTINEL_UNKNOWN_LOG_PATH
+ *   kb.path         -- overrides TESTSENTINEL_KNOWLEDGE_BASE_PATH
+ *   offline.mode    -- overrides TESTSENTINEL_OFFLINE_MODE
+ *   unknown.log.path -- overrides TESTSENTINEL_UNKNOWN_LOG_PATH
  */
 public class SentinelFactory {
 
@@ -54,7 +54,7 @@ public class SentinelFactory {
             log.info("SentinelFactory: Unknown condition recorder at {}", config.getUnknownConditionLogPath());
         }
         TestSentinelClient client = new TestSentinelClient(config, recorder);
-        log.info("SentinelFactory: Client created — offline={}, KB={} patterns, phase2={}",
+        log.info("SentinelFactory: Client created -- offline={}, KB={} patterns, phase2={}",
             config.isOfflineMode(), client.knowledgeBaseSize(), config.isPhase2Enabled());
         return client;
     }
@@ -110,7 +110,7 @@ public class SentinelFactory {
         String fromEnv = System.getenv("ANTHROPIC_API_KEY");
         if (fromEnv != null && !fromEnv.isBlank()) return fromEnv;
 
-        log.warn("SentinelFactory: ANTHROPIC_API_KEY not set and offline.mode=false — " +
+        log.warn("SentinelFactory: ANTHROPIC_API_KEY not set and offline.mode=false -- " +
                  "API calls will fail. Set TESTSENTINEL_OFFLINE_MODE=true or provide a key.");
         return "DISABLED";
     }

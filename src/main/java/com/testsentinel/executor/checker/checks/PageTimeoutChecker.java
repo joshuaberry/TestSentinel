@@ -21,7 +21,7 @@ import java.util.List;
  *   - Page title is a browser error page (ERR_TIMED_OUT, net::ERR_CONNECTION_TIMED_OUT)
  *   - DOM contains typical timeout error text
  *
- * Runs at priority 10 — cheap text checks, very specific signal.
+ * Runs at priority 10 -- cheap text checks, very specific signal.
  */
 @ChecksCondition(id = "page-timeout", priority = 10)
 public class PageTimeoutChecker implements ConditionChecker {

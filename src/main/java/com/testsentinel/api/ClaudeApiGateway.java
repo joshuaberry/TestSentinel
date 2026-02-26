@@ -133,7 +133,7 @@ public class ClaudeApiGateway {
                         return body;
                     }
 
-                    // Rate limited (429) or overloaded (529) — wait and retry
+                    // Rate limited (429) or overloaded (529) -- wait and retry
                     if ((response.code() == 429 || response.code() == 529) && attempt < maxAttempts) {
                         log.warn("TestSentinel: API returned {} on attempt {}. Retrying in 5s...",
                             response.code(), attempt);
@@ -197,7 +197,7 @@ public class ClaudeApiGateway {
                 insight.setConditionId(UUID.randomUUID().toString());
             }
 
-            log.info("TestSentinel: Analysis complete — category={}, confidence={}%, transient={}, latency={}ms, tokens={}",
+            log.info("TestSentinel: Analysis complete -- category={}, confidence={}%, transient={}, latency={}ms, tokens={}",
                 insight.getConditionCategory(),
                 Math.round(insight.getConfidence() * 100),
                 insight.isTransient(),
@@ -243,7 +243,7 @@ public class ClaudeApiGateway {
             }
         }
 
-        // Find the JSON object boundaries (defensive — handles any leading text)
+        // Find the JSON object boundaries (defensive -- handles any leading text)
         int jsonStart = text.indexOf('{');
         int jsonEnd = text.lastIndexOf('}');
         if (jsonStart >= 0 && jsonEnd > jsonStart) {

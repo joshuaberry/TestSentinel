@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
  * An ordered list of recommended remediation steps produced by Phase 2 analysis.
  *
  * The ActionPlan is attached to InsightResponse when Phase 2 analysis mode is active.
- * Steps are ordered by recommended execution sequence — execute step[0] first.
+ * Steps are ordered by recommended execution sequence -- execute step[0] first.
  *
  * ## Usage
  * <pre>
@@ -55,7 +55,7 @@ public class ActionPlan {
 
     // ── Convenience Filters ───────────────────────────────────────────────────
 
-    /** Returns only LOW risk steps — safe for suggestion or automated advisory */
+    /** Returns only LOW risk steps -- safe for suggestion or automated advisory */
     public List<ActionStep> getLowRiskActions() {
         return getActions().stream()
             .filter(ActionStep::isLowRisk)

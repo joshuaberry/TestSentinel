@@ -8,7 +8,7 @@ import java.util.Map;
 /**
  * A single recommended remediation action returned by Phase 2 analysis.
  *
- * ActionSteps are ordered by priority within an ActionPlan — step[0] should
+ * ActionSteps are ordered by priority within an ActionPlan -- step[0] should
  * be attempted before step[1], etc. Each step carries a confidence score
  * (how likely this action is to resolve the condition) and a riskLevel
  * that the framework uses to gate autonomous execution.
@@ -22,7 +22,7 @@ import java.util.Map;
  *            (Phase 3 adds explicit HIGH-risk opt-in per action type)
  *
  * ## Parameters by ActionType
- * Common parameter keys (all optional — Claude populates what it can infer):
+ * Common parameter keys (all optional -- Claude populates what it can infer):
  *
  *   CLICK / CLICK_IF_PRESENT:
  *     "selector"      CSS selector for the target element
@@ -49,7 +49,7 @@ import java.util.Map;
  *     "maxRetries"    Max retry attempts (default: 3)
  *
  *   EXECUTE_SCRIPT:
- *     "script"        JavaScript to execute (HIGH risk — requires explicit opt-in)
+ *     "script"        JavaScript to execute (HIGH risk -- requires explicit opt-in)
  *
  *   QUERY_APM:
  *     "tool"          "dynatrace" | "datadog" | "newrelic" | "splunk"

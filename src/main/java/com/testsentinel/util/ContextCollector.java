@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
  * Assembles the full ConditionEvent diagnostic payload from a live WebDriver session.
  *
  * Called by the ConditionInterceptor after an unexpected condition is caught.
- * Handles all failures gracefully — a collection error should never hide the
+ * Handles all failures gracefully -- a collection error should never hide the
  * original condition or crash the test run.
  */
 public class ContextCollector {
@@ -62,7 +62,7 @@ public class ContextCollector {
             enrichLocatorContext(builder, exception);
         }
 
-        // Collect current URL (safe — rarely fails)
+        // Collect current URL (safe -- rarely fails)
         try {
             builder.currentUrl(driver.getCurrentUrl());
         } catch (Exception e) {
@@ -109,7 +109,7 @@ public class ContextCollector {
     }
 
     /**
-     * Convenience overload — builds a ConditionEvent for a WRONG_PAGE condition
+     * Convenience overload -- builds a ConditionEvent for a WRONG_PAGE condition
      * where there is no exception, just a URL mismatch.
      */
     public ConditionEvent collectWrongPage(
@@ -150,7 +150,7 @@ public class ContextCollector {
         //   or           Unable to locate element: {"method":"css selector","selector":"#x"}
         //
         // The selector value may contain escaped quotes (e.g., [id=\"x\"]), so we cannot
-        // use indexOf('"') to find the closing quote — it hits the embedded \" first.
+        // use indexOf('"') to find the closing quote -- it hits the embedded \" first.
         // Instead we scan to the closing `"}` of the JSON object, which is always the end.
         String msg = exception.getMessage();
         if (msg == null) return;
@@ -212,7 +212,7 @@ public class ContextCollector {
         int tailChars = keep - headChars;
 
         return dom.substring(0, headChars) +
-            "\n\n... [DOM TRUNCATED — " + (dom.length() - maxChars) + " chars removed] ...\n\n" +
+            "\n\n... [DOM TRUNCATED -- " + (dom.length() - maxChars) + " chars removed] ...\n\n" +
             dom.substring(dom.length() - tailChars);
     }
 
@@ -246,7 +246,7 @@ public class ContextCollector {
         if (e == null) return null;
         StringBuilder sb = new StringBuilder();
         sb.append(e.getClass().getName()).append(": ").append(e.getMessage()).append("\n");
-        // Include first 15 stack frames — enough for diagnosis without excessive tokens
+        // Include first 15 stack frames -- enough for diagnosis without excessive tokens
         StackTraceElement[] frames = e.getStackTrace();
         int limit = Math.min(15, frames.length);
         for (int i = 0; i < limit; i++) {

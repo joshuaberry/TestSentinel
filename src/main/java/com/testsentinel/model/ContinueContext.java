@@ -8,11 +8,11 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  *
  * When Claude determines there is no problem and the test should proceed,
  * this object provides the framework with the information it needs to resume
- * intelligently — not just "keep going" but "keep going from here, because of this."
+ * intelligently -- not just "keep going" but "keep going from here, because of this."
  *
  * ## Populated when conditionCategory is:
- *   NAVIGATED_PAST          — session/cookie carried the user past an expected page
- *   STATE_ALREADY_SATISFIED — a precondition is already true before the test established it
+ *   NAVIGATED_PAST          -- session/cookie carried the user past an expected page
+ *   STATE_ALREADY_SATISFIED -- a precondition is already true before the test established it
  *
  * ## Usage
  * <pre>
@@ -21,7 +21,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  *   if (insight.isContinuable()) {
  *       ContinueContext ctx = insight.getContinueContext();
  *
- *       log.info("TestSentinel: Continue from step '{}' — {}",
+ *       log.info("TestSentinel: Continue from step '{}' -- {}",
  *           ctx.getResumeFromStepHint(), ctx.getContinueReason());
  *
  *       // If the test has named steps, skip to the resume point:
@@ -49,7 +49,7 @@ public class ContinueContext {
 
     /**
      * The observed state that makes continuation valid.
-     * Example: "User is on /dashboard — the expected post-login destination."
+     * Example: "User is on /dashboard -- the expected post-login destination."
      */
     private String observedState;
 
@@ -59,7 +59,7 @@ public class ContinueContext {
      *
      * Example: "Verify dashboard header is visible"
      *
-     * Null if Claude cannot infer a specific resume point — in that case the
+     * Null if Claude cannot infer a specific resume point -- in that case the
      * test should continue from wherever it currently is.
      */
     private String resumeFromStepHint;
@@ -69,7 +69,7 @@ public class ContinueContext {
      * Example: "The authenticated user identity has not been verified.
      * If the test requires a specific user account, validate session ownership before proceeding."
      *
-     * This is where the 'ignore whether the user is the intended user' note lives — Claude
+     * This is where the 'ignore whether the user is the intended user' note lives -- Claude
      * will flag it here without blocking continuation.
      */
     private String caveats;

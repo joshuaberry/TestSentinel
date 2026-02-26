@@ -4,7 +4,7 @@ package com.testsentinel.executor;
  * The result returned by an {@link ActionHandler} after attempting to execute one
  * {@link com.testsentinel.model.ActionStep}.
  *
- * Immutable — use the static factories.
+ * Immutable -- use the static factories.
  */
 public class ActionResult {
 

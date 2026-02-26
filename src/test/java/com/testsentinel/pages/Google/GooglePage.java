@@ -15,7 +15,7 @@ import java.util.List;
 /**
  * Page Object for the Google homepage and search results page.
  *
- * Keeps all locators in one place. Step definitions call methods here —
+ * Keeps all locators in one place. Step definitions call methods here --
  * they never interact with WebDriver directly.
  *
  * Google's DOM structure changes periodically. If a locator breaks, update
@@ -120,7 +120,7 @@ public class GooglePage {
             btn.click();
             log.info("GooglePage: Search submitted via Google Search button");
         } catch (Exception e) {
-            log.info("GooglePage: Search button not clickable — falling back to Enter key");
+            log.info("GooglePage: Search button not clickable -- falling back to Enter key");
             getSearchBar().sendKeys(Keys.ENTER);
         }
         waitForResultsPage();

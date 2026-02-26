@@ -7,9 +7,9 @@ package com.testsentinel.model;
  * Phase 3 will execute them via registered ActionAdapters.
  *
  * Risk levels are documented here as guidance for the risk-gating system:
- *   LOW    — safe to execute autonomously, no side effects beyond the current page
- *   MEDIUM — side effects possible; require explicit opt-in config
- *   HIGH   — data mutation, navigation away, or external system calls; always require opt-in
+ *   LOW    -- safe to execute autonomously, no side effects beyond the current page
+ *   MEDIUM -- side effects possible; require explicit opt-in config
+ *   HIGH   -- data mutation, navigation away, or external system calls; always require opt-in
  */
 public enum ActionType {
 

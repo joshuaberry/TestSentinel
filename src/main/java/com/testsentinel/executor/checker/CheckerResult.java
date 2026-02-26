@@ -8,11 +8,11 @@ import com.testsentinel.model.InsightResponse;
  * driver state.
  *
  * A checker either:
- *   - MATCHED  — it recognised the condition and provides a ready-made diagnosis
+ *   - MATCHED  -- it recognised the condition and provides a ready-made diagnosis
  *                (category, root cause, confidence, action plan). No API call needed.
- *   - NO_MATCH — the checker did not recognise this condition; try the next one.
+ *   - NO_MATCH -- the checker did not recognise this condition; try the next one.
  *
- * Immutable — use the static factories.
+ * Immutable -- use the static factories.
  */
 public class CheckerResult {
 

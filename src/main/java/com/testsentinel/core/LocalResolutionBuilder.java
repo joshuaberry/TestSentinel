@@ -10,7 +10,7 @@ import java.util.UUID;
  * Constructs a complete InsightResponse from a KnownCondition record.
  *
  * The result is structurally identical to a Claude-produced response.
- * All existing callers — TestSentinelListener, ActionPlanAdvisor, BaseSeleniumTest —
+ * All existing callers -- TestSentinelListener, ActionPlanAdvisor, BaseSeleniumTest --
  * receive and use it without modification.
  *
  * Key differences from a Claude-produced response that are visible in logs/reports:

@@ -75,7 +75,7 @@ public class UnknownConditionRecorder {
             if (hash.equals(existing.getContentHash())) {
                 // Don't re-record if a KB pattern was already created for this
                 if (existing.getStatus() == UnknownConditionRecord.Status.PATTERN_CREATED) {
-                    log.debug("UnknownConditionRecorder: Skipping record — pattern '{}' already created for hash {}",
+                    log.debug("UnknownConditionRecorder: Skipping record -- pattern '{}' already created for hash {}",
                         existing.getPatternCreatedId(), hash);
                     return existing;
                 }
@@ -92,9 +92,9 @@ public class UnknownConditionRecorder {
         records.add(record);
         save(records);
 
-        log.info("UnknownConditionRecorder: New unknown condition recorded — id={}, type={}, url={}",
+        log.info("UnknownConditionRecorder: New unknown condition recorded -- id={}, type={}, url={}",
             record.getId(), record.getConditionType(), record.getCurrentUrl());
-        log.info("UnknownConditionRecorder: Review at {} — set status to PATTERN_CREATED after adding KB entry",
+        log.info("UnknownConditionRecorder: Review at {} -- set status to PATTERN_CREATED after adding KB entry",
             logPath.toAbsolutePath());
 
         return record;

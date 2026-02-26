@@ -19,7 +19,7 @@ import java.util.List;
  *   - the list of prior cascade attempts so handlers can avoid repeating
  *     actions that already failed
  *   - the configured max risk level from TestSentinelConfig
- *   - dryRun flag — when true, handlers should log intent but not act
+ *   - dryRun flag -- when true, handlers should log intent but not act
  */
 public class ActionContext {
 

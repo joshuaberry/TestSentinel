@@ -59,7 +59,7 @@ public class DriverFactory {
 
         WebDriver rawDriver = new ChromeDriver(options);
 
-        // Wrap with EventFiringDecorator — this is what makes TestSentinel automatic
+        // Wrap with EventFiringDecorator -- this is what makes TestSentinel automatic
         WebDriver decoratedDriver = new EventFiringDecorator<>(listener).decorate(rawDriver);
 
         log.info("DriverFactory: WebDriver created and wrapped with TestSentinelListener");

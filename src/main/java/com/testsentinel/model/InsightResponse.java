@@ -11,7 +11,7 @@ import java.util.UUID;
  * The structured output from TestSentinel analysis.
  *
  * Phase 1 fields: root cause, category, confidence, evidence, transient flag, suggested outcome.
- * Phase 2 adds:   actionPlan — an ordered list of recommended remediation steps with risk levels.
+ * Phase 2 adds:   actionPlan -- an ordered list of recommended remediation steps with risk levels.
  *
  * The actionPlan field will be null when Phase 1 mode is active and populated
  * when Phase 2 mode is active (controlled by TestSentinelConfig.isPhase2Enabled()).
@@ -54,7 +54,7 @@ public class InsightResponse {
         AUTH,                     // Session expired, login wall
         TEST_DATA,                // Missing or corrupted test data
         FLAKE,                    // Non-deterministic rendering, race condition
-        APPLICATION_BUG,          // Genuine defect — element removed, broken flow
+        APPLICATION_BUG,          // Genuine defect -- element removed, broken flow
         NAVIGATED_PAST,           // Test already reached destination via prior session/state
         STATE_ALREADY_SATISFIED,  // Precondition the test was about to establish is already true
         UNKNOWN                   // Claude could not classify with sufficient confidence
@@ -63,7 +63,7 @@ public class InsightResponse {
     // ── Suggested Test Outcomes ───────────────────────────────────────────────
 
     public enum SuggestedOutcome {
-        CONTINUE,          // No problem — state is valid; test may proceed from current position
+        CONTINUE,          // No problem -- state is valid; test may proceed from current position
         RETRY,             // Condition is transient; retry the action
         SKIP,              // Condition blocks this test but not the suite
         FAIL_WITH_CONTEXT, // Genuine failure; attach insight to the failure report
@@ -126,17 +126,17 @@ public class InsightResponse {
     public boolean isLocalResolution() { return resolvedFromPattern != null; }
 
     /**
-     * Returns true when Claude determined there is no problem — the test should
+     * Returns true when Claude determined there is no problem -- the test should
      * continue executing from its current position without retry or failure.
      *
      * This covers two categories:
-     *   NAVIGATED_PAST          — test already reached its intended destination via prior session state
-     *   STATE_ALREADY_SATISFIED — the precondition the test was about to establish is already true
+     *   NAVIGATED_PAST          -- test already reached its intended destination via prior session state
+     *   STATE_ALREADY_SATISFIED -- the precondition the test was about to establish is already true
      *
      * Usage in test code:
      * <pre>
      *   if (insight.isContinuable()) {
-     *       log.info("TestSentinel: No problem detected — continuing. Reason: {}", insight.getRootCause());
+     *       log.info("TestSentinel: No problem detected -- continuing. Reason: {}", insight.getRootCause());
      *       // proceed with the next test step
      *   }
      * </pre>
@@ -149,7 +149,7 @@ public class InsightResponse {
 
     /**
      * Explicit check on the suggestedTestOutcome field only (ignores category).
-     * Prefer isContinuable() for most usage — it catches both category and outcome signals.
+     * Prefer isContinuable() for most usage -- it catches both category and outcome signals.
      */
     public boolean isContinueOutcome() {
         return SuggestedOutcome.CONTINUE.name().equals(suggestedTestOutcome);

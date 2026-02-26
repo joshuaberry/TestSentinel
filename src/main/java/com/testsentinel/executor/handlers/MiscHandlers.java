@@ -24,12 +24,12 @@ class RetryActionHandler implements ActionHandler {
         if (ctx.isDryRun())
             return ActionResult.skipped(
                 "DryRun: would retry original action up to " + maxRetries + " time(s) after " + delayMs + "ms");
-        // Retry is a signal to the enclosing test framework — we log it as advisory
+        // Retry is a signal to the enclosing test framework -- we log it as advisory
         // since the actual retry mechanism lives in the test runner, not the executor.
         log.info("ActionHandler RETRY_ACTION: recommend retrying original action " +
             "(maxRetries={}, delayMs={}). Test framework should honour this.", maxRetries, delayMs);
         return ActionResult.executed(
-            "Retry advisory issued — maxRetries=" + maxRetries + ", delayMs=" + delayMs);
+            "Retry advisory issued -- maxRetries=" + maxRetries + ", delayMs=" + delayMs);
     }
 }
 
@@ -102,11 +102,11 @@ class ExecuteScriptHandler implements ActionHandler {
             return ActionResult.skipped("No 'script' parameter for EXECUTE_SCRIPT");
         if (ctx.isDryRun())
             return ActionResult.skipped("DryRun: would execute script: " + script);
-        // Risk gate is already enforced by ActionPlanExecutor — if we get here,
+        // Risk gate is already enforced by ActionPlanExecutor -- if we get here,
         // the caller has explicitly set maxRiskLevel to HIGH.
         try {
             Object result = ((JavascriptExecutor) ctx.getDriver()).executeScript(script);
-            return ActionResult.executed("Script executed — result: " + result);
+            return ActionResult.executed("Script executed -- result: " + result);
         } catch (Exception e) {
             return ActionResult.failed("Script execution failed: " + e.getMessage(), e);
         }
@@ -137,7 +137,7 @@ class CaptureScreenshotHandler implements ActionHandler {
     }
 }
 
-// ── QUERY_APM (advisory — no live APM integration in this build) ──────────────
+// ── QUERY_APM (advisory -- no live APM integration in this build) ──────────────
 
 @HandlesAction(ActionType.QUERY_APM)
 class QueryApmHandler implements ActionHandler {
@@ -147,10 +147,10 @@ class QueryApmHandler implements ActionHandler {
     public ActionResult execute(ActionContext ctx) {
         String tool  = ctx.getStep().getParam("tool", "unknown");
         String query = ctx.getStep().getParam("query", "");
-        log.info("ActionHandler QUERY_APM: advisory — tool={}, query='{}'. " +
+        log.info("ActionHandler QUERY_APM: advisory -- tool={}, query='{}'. " +
             "Integrate a real APM client here for Phase 3.", tool, query);
         return ActionResult.skipped(
-            "QUERY_APM advisory: check " + tool + " for '" + query + "' — no live integration configured");
+            "QUERY_APM advisory: check " + tool + " for '" + query + "' -- no live integration configured");
     }
 }
 
@@ -162,9 +162,9 @@ class CaptureHarHandler implements ActionHandler {
 
     @Override
     public ActionResult execute(ActionContext ctx) {
-        log.info("ActionHandler CAPTURE_HAR: advisory — attach a BrowserMob Proxy or " +
+        log.info("ActionHandler CAPTURE_HAR: advisory -- attach a BrowserMob Proxy or " +
             "Playwright network interceptor here for Phase 3.");
-        return ActionResult.skipped("CAPTURE_HAR advisory — no HAR capture integration configured");
+        return ActionResult.skipped("CAPTURE_HAR advisory -- no HAR capture integration configured");
     }
 }
 
@@ -179,12 +179,12 @@ class SkipTestHandler implements ActionHandler {
                 ? ctx.getStep().getDescription()
                 : ctx.getInsight().getRootCause());
         if (ctx.isDryRun())
-            return ActionResult.skipped("DryRun: would throw SkipException — reason: " + reason);
+            return ActionResult.skipped("DryRun: would throw SkipException -- reason: " + reason);
         throw new org.testng.SkipException("TestSentinel SKIP_TEST: " + reason);
     }
 }
 
-// ── ABORT_SUITE (HIGH risk — advisory only) ───────────────────────────────────
+// ── ABORT_SUITE (HIGH risk -- advisory only) ───────────────────────────────────
 
 @HandlesAction(ActionType.ABORT_SUITE)
 class AbortSuiteHandler implements ActionHandler {
@@ -194,14 +194,14 @@ class AbortSuiteHandler implements ActionHandler {
     public ActionResult execute(ActionContext ctx) {
         // ABORT_SUITE is HIGH risk. ActionPlanExecutor will only reach here if
         // maxRiskLevel == HIGH. We log strongly and return rather than actually
-        // killing the JVM — callers can promote this to a hard abort if desired.
+        // killing the JVM -- callers can promote this to a hard abort if desired.
         String reason = ctx.getStep().getParam("reason",
             "TestSentinel recommended aborting the suite");
-        log.error("ActionHandler ABORT_SUITE: {} — rootCause: {}",
+        log.error("ActionHandler ABORT_SUITE: {} -- rootCause: {}",
             reason, ctx.getInsight().getRootCause());
         if (ctx.isDryRun())
-            return ActionResult.skipped("DryRun: would abort suite — reason: " + reason);
-        return ActionResult.executed("ABORT_SUITE advisory logged — escalate to suite controller if needed");
+            return ActionResult.skipped("DryRun: would abort suite -- reason: " + reason);
+        return ActionResult.executed("ABORT_SUITE advisory logged -- escalate to suite controller if needed");
     }
 }
 
@@ -217,6 +217,6 @@ class CustomHandler implements ActionHandler {
         // Parameters from the ActionStep are available via ctx.getStep().getParam(...).
         log.warn("ActionHandler CUSTOM: no custom implementation registered. " +
             "Override CustomHandler with your project-specific logic.");
-        return ActionResult.skipped("CUSTOM handler not implemented — override CustomHandler");
+        return ActionResult.skipped("CUSTOM handler not implemented -- override CustomHandler");
     }
 }

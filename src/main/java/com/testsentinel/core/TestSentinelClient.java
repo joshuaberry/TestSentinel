@@ -24,7 +24,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * TestSentinelClient — the primary integration point for test automation frameworks.
+ * TestSentinelClient -- the primary integration point for test automation frameworks.
  *
  * ## Resolution Priority (Offline-First)
  * Every call to analyzeEvent() follows this decision tree:
@@ -62,7 +62,7 @@ public class TestSentinelClient {
     private final UnknownConditionRecorder recorder;
     private final ActionPlanExecutor autoExecutor;
 
-    // Last auto-execution results — useful for test assertions in single-threaded suites
+    // Last auto-execution results -- useful for test assertions in single-threaded suites
     private volatile List<ActionResult> lastAutoActionResults = Collections.emptyList();
 
     // Full history of every analysis performed during this client's lifetime.
@@ -70,7 +70,7 @@ public class TestSentinelClient {
     private final List<InsightRecord> insightHistory = new java.util.concurrent.CopyOnWriteArrayList<>();
 
     /**
-     * One entry per analysis call — pairs the produced InsightResponse with the
+     * One entry per analysis call -- pairs the produced InsightResponse with the
      * list of ActionResults that were auto-executed immediately after (may be empty).
      */
     public record InsightRecord(InsightResponse insight, List<ActionResult> actions) {}
@@ -94,13 +94,13 @@ public class TestSentinelClient {
 
         if (config.isKnowledgeBaseEnabled()) {
             this.knowledgeBase = new KnownConditionRepository(config.getKnowledgeBasePath());
-            log.info("TestSentinel initialized — offline={}, KB={} patterns, unknownLog={}",
+            log.info("TestSentinel initialized -- offline={}, KB={} patterns, unknownLog={}",
                 config.isOfflineMode(),
                 knowledgeBase.size(),
                 recorder != null ? config.getUnknownConditionLogPath() : "disabled");
         } else {
             this.knowledgeBase = null;
-            log.info("TestSentinel initialized — offline={}, KB=disabled, unknownLog={}",
+            log.info("TestSentinel initialized -- offline={}, KB=disabled, unknownLog={}",
                 config.isOfflineMode(),
                 recorder != null ? config.getUnknownConditionLogPath() : "disabled");
         }
@@ -127,7 +127,7 @@ public class TestSentinelClient {
             Map<String, String> testMeta
     ) {
         ConditionType conditionType = mapExceptionToConditionType(exception);
-        log.info("TestSentinel: Analyzing {} condition — {}", conditionType, exception.getMessage());
+        log.info("TestSentinel: Analyzing {} condition -- {}", conditionType, exception.getMessage());
 
         ConditionEvent event = contextCollector.collect(driver, conditionType, exception, priorSteps, testMeta);
         InsightResponse insight = analyzeEventCore(event);
@@ -146,7 +146,7 @@ public class TestSentinelClient {
             List<String> priorSteps,
             Map<String, String> testMeta
     ) {
-        log.info("TestSentinel: Analyzing WRONG_PAGE condition — expected={}, actual={}",
+        log.info("TestSentinel: Analyzing WRONG_PAGE condition -- expected={}, actual={}",
             expectedUrl, safeGetUrl(driver));
 
         ConditionEvent event = contextCollector.collectWrongPage(driver, expectedUrl, priorSteps, testMeta);
@@ -157,12 +157,12 @@ public class TestSentinelClient {
     }
 
     /**
-     * Analyzes a pre-built ConditionEvent (no driver available — no auto-execution).
+     * Analyzes a pre-built ConditionEvent (no driver available -- no auto-execution).
      *
      * Resolution priority:
-     *   1. Local knowledge base match  — sub-millisecond, 0 tokens, confidence 1.0
-     *   2. Offline recorder            — records for human review when offlineMode=true
-     *   3. Claude API call             — only when offlineMode=false and API key is set
+     *   1. Local knowledge base match  -- sub-millisecond, 0 tokens, confidence 1.0
+     *   2. Offline recorder            -- records for human review when offlineMode=true
+     *   3. Claude API call             -- only when offlineMode=false and API key is set
      */
     public InsightResponse analyzeEvent(ConditionEvent event) {
         InsightResponse insight = analyzeEventCore(event);
@@ -172,7 +172,7 @@ public class TestSentinelClient {
 
     /**
      * Core resolution logic shared by all three public analyzeXxx() methods.
-     * Does not record to insightHistory — callers do that after actions are resolved.
+     * Does not record to insightHistory -- callers do that after actions are resolved.
      */
     private InsightResponse analyzeEventCore(ConditionEvent event) {
         // ── Step 1: Local knowledge base ─────────────────────────────────────
@@ -184,15 +184,15 @@ public class TestSentinelClient {
                 long latencyMs = System.currentTimeMillis() - kbStart;
                 knowledgeBase.recordHit(kc);
                 InsightResponse insight = localBuilder.build(kc, latencyMs);
-                log.info("TestSentinel: [LOCAL KB] Pattern '{}' matched — API call skipped ({}ms, 0 tokens)",
+                log.info("TestSentinel: [LOCAL KB] Pattern '{}' matched -- API call skipped ({}ms, 0 tokens)",
                     kc.getId(), latencyMs);
                 return insight;
             }
         }
 
-        // ── Step 2: Offline — record for human review ─────────────────────────
+        // ── Step 2: Offline -- record for human review ─────────────────────────
         if (config.isOfflineMode()) {
-            log.info("TestSentinel: [OFFLINE] No KB match — recording unknown condition for human review");
+            log.info("TestSentinel: [OFFLINE] No KB match -- recording unknown condition for human review");
             if (recorder != null) {
                 recorder.record(event);
             }
@@ -201,7 +201,7 @@ public class TestSentinelClient {
 
         // ── Step 3: Claude API call ───────────────────────────────────────────
         if (!config.isApiEnabled()) {
-            log.debug("TestSentinel: No KB match and API disabled — returning error insight");
+            log.debug("TestSentinel: No KB match and API disabled -- returning error insight");
             return InsightResponse.error("TestSentinel: no KB match and API is disabled", 0);
         }
         long startMs = System.currentTimeMillis();
@@ -223,7 +223,7 @@ public class TestSentinelClient {
      */
     public void addPattern(KnownCondition kc) {
         if (knowledgeBase == null) {
-            log.warn("TestSentinel: Cannot add pattern — TESTSENTINEL_KNOWLEDGE_BASE_PATH not configured");
+            log.warn("TestSentinel: Cannot add pattern -- TESTSENTINEL_KNOWLEDGE_BASE_PATH not configured");
             return;
         }
         knowledgeBase.add(kc);
@@ -247,11 +247,11 @@ public class TestSentinelClient {
     public void recordResolution(ConditionEvent event, InsightResponse insight,
                                   String id, String addedBy) {
         if (knowledgeBase == null) {
-            log.warn("TestSentinel: Cannot record resolution — TESTSENTINEL_KNOWLEDGE_BASE_PATH not configured");
+            log.warn("TestSentinel: Cannot record resolution -- TESTSENTINEL_KNOWLEDGE_BASE_PATH not configured");
             return;
         }
         if (insight.isLocalResolution()) {
-            log.debug("TestSentinel: Skipping recordResolution — insight already came from local KB");
+            log.debug("TestSentinel: Skipping recordResolution -- insight already came from local KB");
             return;
         }
 
@@ -289,9 +289,9 @@ public class TestSentinelClient {
     public void reloadKnowledgeBase() {
         if (knowledgeBase != null) {
             knowledgeBase.reload();
-            log.info("TestSentinel: Knowledge base reloaded — {} active patterns", knowledgeBase.size());
+            log.info("TestSentinel: Knowledge base reloaded -- {} active patterns", knowledgeBase.size());
         } else {
-            log.warn("TestSentinel: Cannot reload — knowledge base not configured");
+            log.warn("TestSentinel: Cannot reload -- knowledge base not configured");
         }
     }
 
@@ -326,48 +326,48 @@ public class TestSentinelClient {
         if (insight == null) return;
 
         if (insight.isContinuable()) {
-            log.info("╔══ TestSentinel: CONTINUE — No Problem Detected ══════════════╗");
-            log.info("║  Category  : {}", insight.getConditionCategory());
-            log.info("║  Confidence: {}%  |  Source: {}",
+            log.info("+== TestSentinel: CONTINUE -- No Problem Detected ==============+");
+            log.info("|  Category  : {}", insight.getConditionCategory());
+            log.info("|  Confidence: {}%  |  Source: {}",
                 Math.round(insight.getConfidence() * 100),
                 insight.isLocalResolution() ? "[LOCAL] " + insight.getResolvedFromPattern() : "Claude API");
-            log.info("║  Reason    : {}", insight.getRootCause());
+            log.info("|  Reason    : {}", insight.getRootCause());
             if (insight.getContinueContext() != null) {
                 var ctx = insight.getContinueContext();
-                log.info("║  State     : {}", ctx.getObservedState());
-                if (ctx.hasResumeHint()) log.info("║  Resume At : {}", ctx.getResumeFromStepHint());
-                if (ctx.hasCaveats())    log.info("║  ⚠ Caveat  : {}", ctx.getCaveats());
+                log.info("|  State     : {}", ctx.getObservedState());
+                if (ctx.hasResumeHint()) log.info("|  Resume At : {}", ctx.getResumeFromStepHint());
+                if (ctx.hasCaveats())    log.info("|  Caveat    : {}", ctx.getCaveats());
             }
-            log.info("║  Latency   : {}ms  |  Tokens: {}", insight.getAnalysisLatencyMs(), insight.getAnalysisTokens());
-            log.info("╚═════════════════════════════════════════════════════════════╝");
+            log.info("|  Latency   : {}ms  |  Tokens: {}", insight.getAnalysisLatencyMs(), insight.getAnalysisTokens());
+            log.info("+===============================================================+");
             return;
         }
 
         String source = insight.isLocalResolution()
             ? "[LOCAL:" + insight.getResolvedFromPattern() + "]"
             : (insight.getAnalysisTokens() == 0 ? "[OFFLINE-UNMATCHED]" : "[Claude API]");
-        log.info("╔══ TestSentinel Insight {} ═══════════════════════════════════╗", source);
-        log.info("║  Category    : {}", insight.getConditionCategory());
-        log.info("║  Confidence  : {}%", Math.round(insight.getConfidence() * 100));
-        log.info("║  Transient   : {}", insight.isTransient() ? "Yes — retry may resolve" : "No — persistent condition");
-        log.info("║  Root Cause  : {}", insight.getRootCause());
-        log.info("║  Outcome     : {}", insight.getSuggestedTestOutcome());
+        log.info("+== TestSentinel Insight {} =====================================+", source);
+        log.info("|  Category    : {}", insight.getConditionCategory());
+        log.info("|  Confidence  : {}%", Math.round(insight.getConfidence() * 100));
+        log.info("|  Transient   : {}", insight.isTransient() ? "Yes -- retry may resolve" : "No -- persistent condition");
+        log.info("|  Root Cause  : {}", insight.getRootCause());
+        log.info("|  Outcome     : {}", insight.getSuggestedTestOutcome());
         if (insight.getEvidenceHighlights() != null) {
-            insight.getEvidenceHighlights().forEach(e -> log.info("║  Evidence    : {}", e));
+            insight.getEvidenceHighlights().forEach(e -> log.info("|  Evidence    : {}", e));
         }
         if (insight.hasActionPlan()) {
             var plan = insight.getActionPlan();
-            log.info("║  Action Plan : {} ({}%)", plan.getPlanSummary(),
+            log.info("|  Action Plan : {} ({}%)", plan.getPlanSummary(),
                 Math.round(plan.getPlanConfidence() * 100));
             for (int i = 0; i < plan.getActions().size(); i++) {
                 var step = plan.getActions().get(i);
-                log.info("║  Step {}  [{}][{}] {} ({}%)",
+                log.info("|  Step {}  [{}][{}] {} ({}%)",
                     i + 1, step.getActionType(), step.getRiskLevel(),
                     step.getDescription(), Math.round(step.getConfidence() * 100));
             }
         }
-        log.info("║  Latency     : {}ms  |  Tokens: {}", insight.getAnalysisLatencyMs(), insight.getAnalysisTokens());
-        log.info("╚═════════════════════════════════════════════════════════════╝");
+        log.info("|  Latency     : {}ms  |  Tokens: {}", insight.getAnalysisLatencyMs(), insight.getAnalysisTokens());
+        log.info("+===============================================================+");
     }
 
     // ── Private Helpers ───────────────────────────────────────────────────────
@@ -393,7 +393,7 @@ public class TestSentinelClient {
         r.setAnalysisTokens(0);
         r.setAnalysisLatencyMs(0);
         r.setAnalyzedAt(Instant.now());
-        r.setRawClaudeResponse("[OFFLINE] No KB match — recorded for human review");
+        r.setRawClaudeResponse("[OFFLINE] No KB match -- recorded for human review");
         return r;
     }
 

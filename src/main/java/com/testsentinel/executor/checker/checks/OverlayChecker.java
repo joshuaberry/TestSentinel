@@ -23,7 +23,7 @@ import java.util.Map;
  *   1. Live DOM scan for common overlay selectors
  *   2. DOM snapshot text for overlay keywords
  *
- * Runs at priority 20 — requires a live DOM check but cheap and very common.
+ * Runs at priority 20 -- requires a live DOM check but cheap and very common.
  */
 @ChecksCondition(id = "overlay", priority = 20)
 public class OverlayChecker implements ConditionChecker {

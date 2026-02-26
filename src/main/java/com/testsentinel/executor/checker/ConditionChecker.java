@@ -5,7 +5,7 @@ import org.openqa.selenium.WebDriver;
 
 /**
  * Inspects the current browser state and determines whether a specific condition
- * is present — without making any API call.
+ * is present -- without making any API call.
  *
  * Implementations must:
  *   1. Be annotated with {@link ChecksCondition}
@@ -14,10 +14,10 @@ import org.openqa.selenium.WebDriver;
  *      {@link ConditionCheckerRegistry} can discover them via classpath scanning
  *
  * Implementations should:
- *   - Be fast — checkers run synchronously before any API call
- *   - Be stateless — the same instance is reused across all events
- *   - Never throw — catch all exceptions and return {@link CheckerResult#noMatch}
- *   - Return {@link CheckerResult#noMatch} when uncertain — false positives are
+ *   - Be fast -- checkers run synchronously before any API call
+ *   - Be stateless -- the same instance is reused across all events
+ *   - Never throw -- catch all exceptions and return {@link CheckerResult#noMatch}
+ *   - Return {@link CheckerResult#noMatch} when uncertain -- false positives are
  *     worse than misses because they prevent Claude from seeing the real cause
  */
 public interface ConditionChecker {
@@ -25,7 +25,7 @@ public interface ConditionChecker {
     /**
      * Inspect the driver and event and return a diagnosis or NO_MATCH.
      *
-     * @param driver  The active WebDriver — may be used to inspect page state
+     * @param driver  The active WebDriver -- may be used to inspect page state
      * @param event   The condition event that triggered analysis
      * @return        MATCHED with diagnosis, or NO_MATCH
      */

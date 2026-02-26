@@ -15,10 +15,10 @@ import java.util.List;
  * Page Object for https://the-internet.herokuapp.com
  *
  * Covers the pages used by the TestSentinel demo scenarios:
- *   /           — home page (list of examples)
- *   /login      — Form Authentication (happy path + navigation scenarios)
- *   /secure     — post-login landing page
- *   /checkboxes — Checkboxes page (used for missing-element scenarios)
+ *   /           -- home page (list of examples)
+ *   /login      -- Form Authentication (happy path + navigation scenarios)
+ *   /secure     -- post-login landing page
+ *   /checkboxes -- Checkboxes page (used for missing-element scenarios)
  */
 public class InternetPage {
 
@@ -58,7 +58,7 @@ public class InternetPage {
 
     public void openHome() {
         driver.get(BASE_URL);
-        log.info("InternetPage: Opened home — title='{}'", driver.getTitle());
+        log.info("InternetPage: Opened home -- title='{}'", driver.getTitle());
     }
 
     public void openLogin() {

@@ -39,7 +39,7 @@ public class CommonSteps {
     public void theBrowserIsOpenOnTheLoginPage() {
         InternetPage page = new InternetPage(ctx.getDriver());
         page.openLogin();
-        log.info("CommonSteps: Opened login page — title='{}'", page.getPageTitle());
+        log.info("CommonSteps: Opened login page -- title='{}'", page.getPageTitle());
     }
 
     @Given("the browser is open on the checkboxes page")
@@ -56,7 +56,7 @@ public class CommonSteps {
         InternetPage page = new InternetPage(ctx.getDriver());
         page.openLogin();
         page.login(username, password);
-        log.info("CommonSteps: Logged in as '{}' — now on '{}'", username, page.getCurrentUrl());
+        log.info("CommonSteps: Logged in as '{}' -- now on '{}'", username, page.getCurrentUrl());
     }
 
     // ── API key guard ─────────────────────────────────────────────────────────
@@ -68,10 +68,10 @@ public class CommonSteps {
             // the Claude API (@claude-analysis, @navigation). Skip the scenario
             // cleanly rather than letting it fail deep inside an assertion.
             throw new org.testng.SkipException(
-                "ANTHROPIC_API_KEY not set — skipping API-dependent scenario. " +
+                "ANTHROPIC_API_KEY not set -- skipping API-dependent scenario. " +
                 "Run with -Dcucumber.filter.tags='not @sentinel' to exclude all API tests.");
         }
-        log.info("CommonSteps: API key present — TestSentinel Claude analysis enabled");
+        log.info("CommonSteps: API key present -- TestSentinel Claude analysis enabled");
     }
 
     // ── Knowledge base ────────────────────────────────────────────────────────
