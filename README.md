@@ -25,7 +25,7 @@ Features to add (short-term). Claude Complete means I still need to review the o
 1. [Claude Complete] Logging of which insights were tripped and what actions taken, both at test and suite level.
 2. [Claude Complete] When an element cannot be found, check if the page has finished loading.  If it is still loading throw a TimeoutException.
 3. Mode to only call the AI engine manually once a human has reviewed the new insights
-4. Circut breaker / timeout in case the recovery engine gets into a loop
+4. Circuit breaker / timeout in case the recovery engine gets into a loop
 
 Future work depending on the result of Next Steps:
 
