@@ -1,7 +1,6 @@
 package com.testsentinel.executor.handlers;
 
 import com.testsentinel.executor.*;
-import com.testsentinel.model.ActionType;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebElement;
@@ -14,7 +13,7 @@ import java.time.Duration;
 
 // ── WAIT_FOR_URL ──────────────────────────────────────────────────────────────
 
-@HandlesAction(ActionType.WAIT_FOR_URL)
+@HandlesAction("WAIT_FOR_URL")
 class WaitForUrlHandler implements ActionHandler {
     private static final Logger log = LoggerFactory.getLogger(WaitForUrlHandler.class);
 
@@ -38,7 +37,7 @@ class WaitForUrlHandler implements ActionHandler {
 
 // ── WAIT_FIXED ────────────────────────────────────────────────────────────────
 
-@HandlesAction(ActionType.WAIT_FIXED)
+@HandlesAction("WAIT_FIXED")
 class WaitFixedHandler implements ActionHandler {
     private static final Logger log = LoggerFactory.getLogger(WaitFixedHandler.class);
     private static final int MAX_WAIT_MS = 10_000;
@@ -60,7 +59,7 @@ class WaitFixedHandler implements ActionHandler {
 
 // ── SCROLL_TO_ELEMENT ─────────────────────────────────────────────────────────
 
-@HandlesAction(ActionType.SCROLL_TO_ELEMENT)
+@HandlesAction("SCROLL_TO_ELEMENT")
 class ScrollToElementHandler implements ActionHandler {
     private static final Logger log = LoggerFactory.getLogger(ScrollToElementHandler.class);
 
@@ -84,7 +83,7 @@ class ScrollToElementHandler implements ActionHandler {
 
 // ── SCROLL_TO_TOP ─────────────────────────────────────────────────────────────
 
-@HandlesAction(ActionType.SCROLL_TO_TOP)
+@HandlesAction("SCROLL_TO_TOP")
 class ScrollToTopHandler implements ActionHandler {
     @Override
     public ActionResult execute(ActionContext ctx) {

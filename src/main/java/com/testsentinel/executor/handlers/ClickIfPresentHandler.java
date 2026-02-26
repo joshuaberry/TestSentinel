@@ -1,7 +1,6 @@
 package com.testsentinel.executor.handlers;
 
 import com.testsentinel.executor.*;
-import com.testsentinel.model.ActionType;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 import org.slf4j.Logger;
@@ -9,7 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-@HandlesAction(ActionType.CLICK_IF_PRESENT)
+@HandlesAction("CLICK_IF_PRESENT")
 public class ClickIfPresentHandler implements ActionHandler {
     private static final Logger log = LoggerFactory.getLogger(ClickIfPresentHandler.class);
 

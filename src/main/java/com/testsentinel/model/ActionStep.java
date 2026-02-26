@@ -65,7 +65,7 @@ public class ActionStep {
 
     public enum RiskLevel { LOW, MEDIUM, HIGH }
 
-    private ActionType actionType;
+    private String actionType;
     private String description;           // Plain-language description for logging and reports
     private Map<String, Object> parameters; // Action-specific parameters
     private double confidence;            // 0.0 – 1.0: probability this action resolves the condition
@@ -77,7 +77,7 @@ public class ActionStep {
 
     // ── Getters ───────────────────────────────────────────────────────────────
 
-    public ActionType getActionType() { return actionType; }
+    public String getActionType() { return actionType; }
     public String getDescription() { return description; }
     public Map<String, Object> getParameters() { return parameters; }
     public double getConfidence() { return confidence; }
@@ -87,7 +87,7 @@ public class ActionStep {
 
     // ── Setters ───────────────────────────────────────────────────────────────
 
-    public void setActionType(ActionType actionType) { this.actionType = actionType; }
+    public void setActionType(String actionType) { this.actionType = actionType; }
     public void setDescription(String description) { this.description = description; }
     public void setParameters(Map<String, Object> parameters) { this.parameters = parameters; }
     public void setConfidence(double confidence) { this.confidence = confidence; }

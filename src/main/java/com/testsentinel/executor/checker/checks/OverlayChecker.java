@@ -5,7 +5,6 @@ import com.testsentinel.executor.checker.ChecksCondition;
 import com.testsentinel.executor.checker.ConditionChecker;
 import com.testsentinel.model.ActionPlan;
 import com.testsentinel.model.ActionStep;
-import com.testsentinel.model.ActionType;
 import com.testsentinel.model.ConditionEvent;
 import com.testsentinel.model.InsightResponse;
 import org.openqa.selenium.By;
@@ -89,7 +88,7 @@ public class OverlayChecker implements ConditionChecker {
 
     private ActionPlan buildPlan(String overlaySelector) {
         ActionStep dismiss = new ActionStep();
-        dismiss.setActionType(ActionType.DISMISS_OVERLAY);
+        dismiss.setActionType("DISMISS_OVERLAY");
         dismiss.setParameters(Map.of("selector", overlaySelector, "method", "click"));
         dismiss.setDescription("Dismiss the overlay blocking test interaction");
         dismiss.setConfidence(0.85);
@@ -97,7 +96,7 @@ public class OverlayChecker implements ConditionChecker {
         dismiss.setRationale("The overlay must be dismissed before the target element can be interacted with.");
 
         ActionStep escFallback = new ActionStep();
-        escFallback.setActionType(ActionType.DISMISS_OVERLAY);
+        escFallback.setActionType("DISMISS_OVERLAY");
         escFallback.setParameters(Map.of("method", "escape"));
         escFallback.setDescription("Fallback: dismiss overlay using Escape key");
         escFallback.setConfidence(0.70);

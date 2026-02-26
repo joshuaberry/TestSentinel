@@ -5,7 +5,6 @@ import com.testsentinel.executor.checker.ChecksCondition;
 import com.testsentinel.executor.checker.ConditionChecker;
 import com.testsentinel.model.ActionPlan;
 import com.testsentinel.model.ActionStep;
-import com.testsentinel.model.ActionType;
 import com.testsentinel.model.ConditionEvent;
 import com.testsentinel.model.InsightResponse;
 import org.openqa.selenium.By;
@@ -67,7 +66,7 @@ class AuthRedirectChecker implements ConditionChecker {
 
     private ActionPlan buildPlan() {
         ActionStep skip = new ActionStep();
-        skip.setActionType(ActionType.SKIP_TEST);
+        skip.setActionType("SKIP_TEST");
         skip.setParameters(Map.of("reason",
             "Test session expired -- authentication redirect detected. " +
             "Re-run after refreshing test credentials."));
@@ -124,7 +123,7 @@ class StaleElementChecker implements ConditionChecker {
 
     private ActionPlan buildPlan() {
         ActionStep wait = new ActionStep();
-        wait.setActionType(ActionType.WAIT_FIXED);
+        wait.setActionType("WAIT_FIXED");
         wait.setParameters(Map.of("waitMs", "500"));
         wait.setDescription("Wait 500ms for DOM re-render to stabilise");
         wait.setConfidence(0.85);
@@ -132,7 +131,7 @@ class StaleElementChecker implements ConditionChecker {
         wait.setRationale("A short pause allows the component to finish re-rendering before re-locating.");
 
         ActionStep retry = new ActionStep();
-        retry.setActionType(ActionType.RETRY_ACTION);
+        retry.setActionType("RETRY_ACTION");
         retry.setParameters(Map.of("delayMs", "500", "maxRetries", "3"));
         retry.setDescription("Re-locate the element and retry the original action");
         retry.setConfidence(0.88);
@@ -187,7 +186,7 @@ class WrongPageChecker implements ConditionChecker {
 
     private ActionPlan buildPlan(String expectedUrl) {
         ActionStep navigate = new ActionStep();
-        navigate.setActionType(ActionType.NAVIGATE_TO);
+        navigate.setActionType("NAVIGATE_TO");
         navigate.setParameters(Map.of("url", expectedUrl));
         navigate.setDescription("Navigate directly to the expected URL: " + expectedUrl);
         navigate.setConfidence(0.90);
@@ -255,7 +254,7 @@ class ElementInDomChecker implements ConditionChecker {
 
     private ActionPlan buildPlan(String locator) {
         ActionStep scroll = new ActionStep();
-        scroll.setActionType(ActionType.SCROLL_TO_ELEMENT);
+        scroll.setActionType("SCROLL_TO_ELEMENT");
         scroll.setParameters(Map.of("selector", locator));
         scroll.setDescription("Scroll the hidden element into the viewport");
         scroll.setConfidence(0.75);
@@ -263,7 +262,7 @@ class ElementInDomChecker implements ConditionChecker {
         scroll.setRationale("Scrolling into view may trigger visibility and make the element interactable.");
 
         ActionStep wait = new ActionStep();
-        wait.setActionType(ActionType.WAIT_FOR_ELEMENT);
+        wait.setActionType("WAIT_FOR_ELEMENT");
         wait.setParameters(Map.of("selector", locator, "condition", "visible", "timeoutMs", "5000"));
         wait.setDescription("Wait for element to become visible after scroll");
         wait.setConfidence(0.78);

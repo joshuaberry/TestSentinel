@@ -1,10 +1,19 @@
 package com.testsentinel.model;
 
 /**
- * Enumeration of all action types that can appear in an ActionPlan.
+ * Catalogue of built-in action type names used by the TestSentinel library.
  *
- * Phase 2 produces these as recommendations.
- * Phase 3 will execute them via registered ActionAdapters.
+ * These string constants are the names that the library's built-in handlers
+ * are registered under. They appear as the {@code actionType} field in JSON
+ * action plans and as the value of {@code @HandlesAction} on each handler.
+ *
+ * Consumer test repositories can define any additional action type by:
+ *   1. Creating a class implementing {@link com.testsentinel.executor.ActionHandler}
+ *      in the {@code com.testsentinel.executor.handlers} package of their test source tree
+ *   2. Annotating it {@code @HandlesAction("MY_CUSTOM_ACTION")} -- any string name
+ *   3. Adding that action type string to their known-condition JSON action plans
+ *
+ * No modification to this enum or any library class is required.
  *
  * Risk levels are documented here as guidance for the risk-gating system:
  *   LOW    -- safe to execute autonomously, no side effects beyond the current page

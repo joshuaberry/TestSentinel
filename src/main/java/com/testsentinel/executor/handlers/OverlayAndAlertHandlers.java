@@ -1,7 +1,6 @@
 package com.testsentinel.executor.handlers;
 
 import com.testsentinel.executor.*;
-import com.testsentinel.model.ActionType;
 import org.openqa.selenium.Alert;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Keys;
@@ -16,7 +15,7 @@ import java.util.List;
 
 // ── DISMISS_OVERLAY ───────────────────────────────────────────────────────────
 
-@HandlesAction(ActionType.DISMISS_OVERLAY)
+@HandlesAction("DISMISS_OVERLAY")
 class DismissOverlayHandler implements ActionHandler {
     private static final Logger log = LoggerFactory.getLogger(DismissOverlayHandler.class);
 
@@ -55,7 +54,7 @@ class DismissOverlayHandler implements ActionHandler {
 
 // ── ACCEPT_ALERT ──────────────────────────────────────────────────────────────
 
-@HandlesAction(ActionType.ACCEPT_ALERT)
+@HandlesAction("ACCEPT_ALERT")
 class AcceptAlertHandler implements ActionHandler {
     @Override
     public ActionResult execute(ActionContext ctx) {
@@ -75,7 +74,7 @@ class AcceptAlertHandler implements ActionHandler {
 
 // ── DISMISS_ALERT ─────────────────────────────────────────────────────────────
 
-@HandlesAction(ActionType.DISMISS_ALERT)
+@HandlesAction("DISMISS_ALERT")
 class DismissAlertHandler implements ActionHandler {
     @Override
     public ActionResult execute(ActionContext ctx) {

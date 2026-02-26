@@ -1,7 +1,6 @@
 package com.testsentinel.executor.handlers;
 
 import com.testsentinel.executor.*;
-import com.testsentinel.model.ActionType;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.slf4j.Logger;
@@ -9,7 +8,7 @@ import org.slf4j.LoggerFactory;
 
 // ── REFRESH_PAGE ──────────────────────────────────────────────────────────────
 
-@HandlesAction(ActionType.REFRESH_PAGE)
+@HandlesAction("REFRESH_PAGE")
 class RefreshPageHandler implements ActionHandler {
     private static final Logger log = LoggerFactory.getLogger(RefreshPageHandler.class);
 
@@ -29,7 +28,7 @@ class RefreshPageHandler implements ActionHandler {
 
 // ── NAVIGATE_BACK ─────────────────────────────────────────────────────────────
 
-@HandlesAction(ActionType.NAVIGATE_BACK)
+@HandlesAction("NAVIGATE_BACK")
 class NavigateBackHandler implements ActionHandler {
     @Override
     public ActionResult execute(ActionContext ctx) {
@@ -46,7 +45,7 @@ class NavigateBackHandler implements ActionHandler {
 
 // ── NAVIGATE_TO ───────────────────────────────────────────────────────────────
 
-@HandlesAction(ActionType.NAVIGATE_TO)
+@HandlesAction("NAVIGATE_TO")
 class NavigateToHandler implements ActionHandler {
     @Override
     public ActionResult execute(ActionContext ctx) {

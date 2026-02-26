@@ -1,13 +1,12 @@
 package com.testsentinel.executor;
 
-import com.testsentinel.model.ActionType;
 import org.reflections.Reflections;
 import org.reflections.scanners.Scanners;
 import org.reflections.util.ConfigurationBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -19,14 +18,17 @@ import java.util.Set;
  *   1. Uses the Reflections library to scan {@code com.testsentinel.executor.handlers}
  *   2. Finds every class annotated with {@link HandlesAction}
  *   3. Instantiates each one via its no-arg constructor
- *   4. Registers it under the {@link ActionType} named in the annotation
+ *   4. Registers it under the String name declared in the annotation
  *
  * Adding a new handler requires only:
  *   - Create a class implementing {@link ActionHandler} in the handlers package
- *   - Annotate it with {@code @HandlesAction(ActionType.YOUR_TYPE)}
+ *   - Annotate it with {@code @HandlesAction("YOUR_ACTION_NAME")}
  *   - No changes to this registry or any other class
  *
- * Duplicate registrations (two handlers for the same ActionType) cause an
+ * Consumer test repositories can define their own action types as plain strings
+ * without modifying the library's ActionType catalogue.
+ *
+ * Duplicate registrations (two handlers for the same action name) cause an
  * {@link IllegalStateException} at startup so the error is never silent.
  */
 public class ActionHandlerRegistry {
@@ -34,7 +36,7 @@ public class ActionHandlerRegistry {
     private static final Logger log = LoggerFactory.getLogger(ActionHandlerRegistry.class);
     private static final String HANDLERS_PACKAGE = "com.testsentinel.executor.handlers";
 
-    private final Map<ActionType, ActionHandler> registry = new EnumMap<>(ActionType.class);
+    private final Map<String, ActionHandler> registry = new HashMap<>();
 
     public ActionHandlerRegistry() {
         discoverAndRegister();
@@ -44,17 +46,17 @@ public class ActionHandlerRegistry {
     // ── Lookup ────────────────────────────────────────────────────────────────
 
     /**
-     * Returns the handler for the given ActionType, or empty if none is registered.
+     * Returns the handler for the given action type name, or empty if none is registered.
      */
-    public Optional<ActionHandler> find(ActionType type) {
-        return Optional.ofNullable(registry.get(type));
+    public Optional<ActionHandler> find(String actionType) {
+        return Optional.ofNullable(registry.get(actionType));
     }
 
     /**
-     * Returns true if a handler is registered for the given ActionType.
+     * Returns true if a handler is registered for the given action type name.
      */
-    public boolean hasHandler(ActionType type) {
-        return registry.containsKey(type);
+    public boolean hasHandler(String actionType) {
+        return registry.containsKey(actionType);
     }
 
     /**
@@ -77,18 +79,18 @@ public class ActionHandlerRegistry {
 
         for (Class<?> cls : annotated) {
             HandlesAction annotation = cls.getAnnotation(HandlesAction.class);
-            ActionType actionType = annotation.value();
+            String actionType = annotation.value();
 
             if (!ActionHandler.class.isAssignableFrom(cls)) {
                 throw new IllegalStateException(
-                    "Class " + cls.getName() + " is annotated @HandlesAction(" + actionType +
-                    ") but does not implement ActionHandler");
+                    "Class " + cls.getName() + " is annotated @HandlesAction(\"" + actionType +
+                    "\") but does not implement ActionHandler");
             }
 
             if (registry.containsKey(actionType)) {
                 throw new IllegalStateException(
-                    "Duplicate handler for ActionType." + actionType +
-                    ": " + registry.get(actionType).getClass().getName() +
+                    "Duplicate handler for action type '" + actionType +
+                    "': " + registry.get(actionType).getClass().getName() +
                     " and " + cls.getName());
             }
 
@@ -102,7 +104,7 @@ public class ActionHandlerRegistry {
             } catch (Exception e) {
                 throw new IllegalStateException(
                     "Failed to instantiate handler " + cls.getName() +
-                    " for ActionType." + actionType + ".", e);
+                    " for action type '" + actionType + "'.", e);
             }
         }
     }

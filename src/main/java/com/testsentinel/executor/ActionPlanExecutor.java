@@ -2,7 +2,6 @@ package com.testsentinel.executor;
 
 import com.testsentinel.model.ActionPlan;
 import com.testsentinel.model.ActionStep;
-import com.testsentinel.model.ActionType;
 import com.testsentinel.model.ConditionEvent;
 import com.testsentinel.model.InsightResponse;
 import org.openqa.selenium.WebDriver;
@@ -144,7 +143,7 @@ public class ActionPlanExecutor {
     private ActionResult executeStep(int visitNum, ActionStep step,
                                       InsightResponse insight, WebDriver driver,
                                       ConditionEvent event, List<CascadeResult> priorAttempts) {
-        ActionType type = step.getActionType();
+        String type = step.getActionType();
 
         log.info("ActionPlanExecutor: Visit #{} -- type={}, risk={}, confidence={}, desc='{}'",
             visitNum, type, step.getRiskLevel(),
@@ -178,7 +177,7 @@ public class ActionPlanExecutor {
                 }
             })
             .orElseGet(() -> {
-                ActionResult r = ActionResult.notFound(type.name());
+                ActionResult r = ActionResult.notFound(type);
                 log.warn("ActionPlanExecutor: NOT_FOUND -- {}", r.getMessage());
                 return r;
             });

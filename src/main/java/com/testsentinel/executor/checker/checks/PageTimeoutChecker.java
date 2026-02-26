@@ -5,7 +5,6 @@ import com.testsentinel.executor.checker.ChecksCondition;
 import com.testsentinel.executor.checker.ConditionChecker;
 import com.testsentinel.model.ActionPlan;
 import com.testsentinel.model.ActionStep;
-import com.testsentinel.model.ActionType;
 import com.testsentinel.model.ConditionEvent;
 import com.testsentinel.model.InsightResponse;
 import org.openqa.selenium.WebDriver;
@@ -77,7 +76,7 @@ public class PageTimeoutChecker implements ConditionChecker {
 
     private ActionPlan buildPlan() {
         ActionStep refresh = new ActionStep();
-        refresh.setActionType(ActionType.REFRESH_PAGE);
+        refresh.setActionType("REFRESH_PAGE");
         refresh.setDescription("Refresh the page to retry the timed-out request");
         refresh.setConfidence(0.85);
         refresh.setRiskLevel(ActionStep.RiskLevel.MEDIUM);
@@ -85,7 +84,7 @@ public class PageTimeoutChecker implements ConditionChecker {
         refresh.setRequiresVerification(true);
 
         ActionStep wait = new ActionStep();
-        wait.setActionType(ActionType.WAIT_FOR_ELEMENT);
+        wait.setActionType("WAIT_FOR_ELEMENT");
         wait.setParameters(java.util.Map.of("selector", "body", "condition", "present", "timeoutMs", "15000"));
         wait.setDescription("Wait up to 15 seconds for the page body to be present after refresh");
         wait.setConfidence(0.80);

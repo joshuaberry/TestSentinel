@@ -1,7 +1,6 @@
 package com.testsentinel.executor.handlers;
 
 import com.testsentinel.executor.*;
-import com.testsentinel.model.ActionType;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.JavascriptExecutor;
@@ -13,7 +12,7 @@ import org.slf4j.LoggerFactory;
 
 // ── RETRY_ACTION ──────────────────────────────────────────────────────────────
 
-@HandlesAction(ActionType.RETRY_ACTION)
+@HandlesAction("RETRY_ACTION")
 class RetryActionHandler implements ActionHandler {
     private static final Logger log = LoggerFactory.getLogger(RetryActionHandler.class);
 
@@ -35,7 +34,7 @@ class RetryActionHandler implements ActionHandler {
 
 // ── CLEAR_COOKIES ─────────────────────────────────────────────────────────────
 
-@HandlesAction(ActionType.CLEAR_COOKIES)
+@HandlesAction("CLEAR_COOKIES")
 class ClearCookiesHandler implements ActionHandler {
     @Override
     public ActionResult execute(ActionContext ctx) {
@@ -53,7 +52,7 @@ class ClearCookiesHandler implements ActionHandler {
 
 // ── SWITCH_TO_FRAME ───────────────────────────────────────────────────────────
 
-@HandlesAction(ActionType.SWITCH_TO_FRAME)
+@HandlesAction("SWITCH_TO_FRAME")
 class SwitchToFrameHandler implements ActionHandler {
     @Override
     public ActionResult execute(ActionContext ctx) {
@@ -74,7 +73,7 @@ class SwitchToFrameHandler implements ActionHandler {
 
 // ── SWITCH_TO_DEFAULT ─────────────────────────────────────────────────────────
 
-@HandlesAction(ActionType.SWITCH_TO_DEFAULT)
+@HandlesAction("SWITCH_TO_DEFAULT")
 class SwitchToDefaultHandler implements ActionHandler {
     @Override
     public ActionResult execute(ActionContext ctx) {
@@ -91,7 +90,7 @@ class SwitchToDefaultHandler implements ActionHandler {
 
 // ── EXECUTE_SCRIPT (HIGH risk) ────────────────────────────────────────────────
 
-@HandlesAction(ActionType.EXECUTE_SCRIPT)
+@HandlesAction("EXECUTE_SCRIPT")
 class ExecuteScriptHandler implements ActionHandler {
     private static final Logger log = LoggerFactory.getLogger(ExecuteScriptHandler.class);
 
@@ -115,7 +114,7 @@ class ExecuteScriptHandler implements ActionHandler {
 
 // ── CAPTURE_SCREENSHOT ────────────────────────────────────────────────────────
 
-@HandlesAction(ActionType.CAPTURE_SCREENSHOT)
+@HandlesAction("CAPTURE_SCREENSHOT")
 class CaptureScreenshotHandler implements ActionHandler {
     private static final Logger log = LoggerFactory.getLogger(CaptureScreenshotHandler.class);
 
@@ -139,7 +138,7 @@ class CaptureScreenshotHandler implements ActionHandler {
 
 // ── QUERY_APM (advisory -- no live APM integration in this build) ──────────────
 
-@HandlesAction(ActionType.QUERY_APM)
+@HandlesAction("QUERY_APM")
 class QueryApmHandler implements ActionHandler {
     private static final Logger log = LoggerFactory.getLogger(QueryApmHandler.class);
 
@@ -156,7 +155,7 @@ class QueryApmHandler implements ActionHandler {
 
 // ── CAPTURE_HAR (advisory) ────────────────────────────────────────────────────
 
-@HandlesAction(ActionType.CAPTURE_HAR)
+@HandlesAction("CAPTURE_HAR")
 class CaptureHarHandler implements ActionHandler {
     private static final Logger log = LoggerFactory.getLogger(CaptureHarHandler.class);
 
@@ -170,7 +169,7 @@ class CaptureHarHandler implements ActionHandler {
 
 // ── SKIP_TEST ─────────────────────────────────────────────────────────────────
 
-@HandlesAction(ActionType.SKIP_TEST)
+@HandlesAction("SKIP_TEST")
 class SkipTestHandler implements ActionHandler {
     @Override
     public ActionResult execute(ActionContext ctx) {
@@ -186,7 +185,7 @@ class SkipTestHandler implements ActionHandler {
 
 // ── ABORT_SUITE (HIGH risk -- advisory only) ───────────────────────────────────
 
-@HandlesAction(ActionType.ABORT_SUITE)
+@HandlesAction("ABORT_SUITE")
 class AbortSuiteHandler implements ActionHandler {
     private static final Logger log = LoggerFactory.getLogger(AbortSuiteHandler.class);
 
@@ -207,7 +206,7 @@ class AbortSuiteHandler implements ActionHandler {
 
 // ── CUSTOM ────────────────────────────────────────────────────────────────────
 
-@HandlesAction(ActionType.CUSTOM)
+@HandlesAction("CUSTOM")
 class CustomHandler implements ActionHandler {
     private static final Logger log = LoggerFactory.getLogger(CustomHandler.class);
 

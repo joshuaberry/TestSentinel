@@ -7,7 +7,6 @@ import com.testsentinel.executor.ActionContext;
 import com.testsentinel.executor.ActionHandler;
 import com.testsentinel.executor.ActionResult;
 import com.testsentinel.executor.HandlesAction;
-import com.testsentinel.model.ActionType;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
@@ -17,7 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 
-@HandlesAction(ActionType.CLICK)
+@HandlesAction("CLICK")
 public class ClickHandler implements ActionHandler {
     private static final Logger log = LoggerFactory.getLogger(ClickHandler.class);
 
