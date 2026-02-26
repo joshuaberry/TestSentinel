@@ -20,6 +20,12 @@ Next steps:
 3. Optimize the code
 4. Experiment with live Claude calls to see what kind of insight it gives on what happened and what actions it recommends
 
+Features to add (short-term). Claude Complete means I still need to review the output myself:
+
+1. [Claude Complete] Logging of which insights were tripped and what actions taken, both at test and suite level.
+2. Mode to only call the AI engine manually once a human has reviewed the new insights
+3. Circut breaker / timeout in case the recovery engine gets into a loop
+
 Future work depending on the result of Next Steps:
 
 1. Use MCP or other protocol to connect to services like Dynatrace, Grafana, an others to perform detailed analysis on WHY a failure happened, e.g. dependent service was being re-deployed.
