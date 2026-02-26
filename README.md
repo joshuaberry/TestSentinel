@@ -15,8 +15,8 @@ Had Claude create a users document localed in root/docs folder.
 
 Next steps:
 
-1. Review the unit tests and reporting myself, and make any functional changes
-2. Harden the ability to take specific actions based on a match.  These actions are bespoke to each application and not part of the core app code.  This also includes cascading checks, e.g. on element not found, check for page timeout.
+1. [In-Progress] Review the unit tests and reporting myself, and make any functional changes
+2. [In-Progress] Harden the ability to take specific actions based on a match.  These actions are bespoke to each application and not part of the core app code.  This also includes cascading checks, e.g. on element not found, check for page timeout.
 3. Optimize the code
 4. Experiment with live Claude calls to see what kind of insight it gives on what happened and what actions it recommends
 

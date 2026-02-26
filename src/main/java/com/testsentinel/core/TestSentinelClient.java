@@ -405,6 +405,16 @@ public class TestSentinelClient {
             insight.getResolvedFromPattern());
         List<ActionResult> results = autoExecutor.execute(insight, driver, event, Collections.emptyList());
         this.lastAutoActionResults = results;
+
+        // If any handler returned an explicit TestOutcome, apply it to the insight.
+        // This lets custom handlers make runtime decisions (e.g. "login succeeded →
+        // CONTINUE") that a static KB pattern cannot anticipate.
+        com.testsentinel.model.TestOutcome resolved = ActionResult.resolveTestOutcome(results);
+        if (resolved != null) {
+            String previous = insight.getSuggestedTestOutcome();
+            insight.setSuggestedTestOutcome(resolved.name());
+            log.info("TestSentinel: Handler overrode test outcome: {} -> {}", previous, resolved.name());
+        }
     }
 
     private InsightResponse buildOfflineNoMatchResponse(ConditionEvent event) {

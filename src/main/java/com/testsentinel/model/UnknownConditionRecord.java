@@ -15,13 +15,13 @@ import java.time.Instant;
  * ## Human Review Workflow
  *
  *   1. Run the test suite (offline mode).
- *   2. Open unknown-conditions-log.json after the run.
- *   3. For each record with status=NEW:
- *        - Review conditionType, message, currentUrl, locatorValue, stackTraceSummary
- *        - If it's a recurring pattern: create a KB entry in known-conditions.json
- *          and set patternCreatedId to the new pattern's id.
- *        - If it's a one-off or noise: set status=IGNORED with notes.
- *        - If it needs investigation: set status=REVIEWED with notes.
+ *   2. Run UnknownConditionReviewCli to send NEW records to the Claude AI.
+ *      The CLI shows the AI analysis and prompts for Approve / Ignore / Skip.
+ *        - Approved records get status=APPROVED with the AI analysis stored in
+ *          the ai* fields for reference when creating KB patterns.
+ *        - Ignored records get status=IGNORED.
+ *   3. For each APPROVED record, optionally create a KB entry in known-conditions.json
+ *      and set patternCreatedId to the new pattern's id (status=PATTERN_CREATED).
  *   4. Re-run the suite -- new KB patterns resolve the condition locally.
  *
  * ## Append-Only Contract

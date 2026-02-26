@@ -10,7 +10,8 @@
       "WebFetch(domain:square.github.io)",
       "Bash(grep:*)",
       "Bash(python:*)",
-      "Bash(python3.14:*)"
+      "Bash(python3.14:*)",
+      "Bash(export:*)"
     ]
   }
 }

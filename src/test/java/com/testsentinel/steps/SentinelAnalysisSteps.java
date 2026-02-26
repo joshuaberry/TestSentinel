@@ -26,13 +26,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 /**
- * Step definitions for Features 02, 03, 04, 05, and 06.
+ * Step definitions for Features 02, 03, 04, 05, 06, and 07.
  *
  *   02 -- Local KB analysis (missing elements, zero tokens)
  *   03 -- Knowledge base management (pre-loaded, direct-add, reuse)
  *   04 -- Navigation detection and CONTINUE outcome
  *   05 -- Unknown condition recording
  *   06 -- Autonomous action execution
+ *   07 -- Session cookie bypass detection (CONTINUE outcome via LOCATOR_NOT_FOUND on /secure)
  */
 public class SentinelAnalysisSteps {
 
@@ -525,6 +526,45 @@ public class SentinelAnalysisSteps {
             .as("At least one record should have status '%s'", expectedStatus)
             .isTrue();
         log.info("SentinelAnalysisSteps: Record with status '{}' confirmed", expectedStatus);
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Feature 07 -- Session Cookie Bypass
+    // ════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Simulates a test trying to interact with the login form while already on
+     * the secure page. The username field does not exist on /secure — a
+     * NoSuchElementException is thrown, TestSentinel intercepts it, and the
+     * "internet-session-cookie-bypass" KB pattern fires, returning CONTINUE.
+     */
+    @When("the test attempts to find the login username field on the current page")
+    public void theTestAttemptsToFindTheLoginUsernameFieldOnTheCurrentPage() {
+        log.info("SentinelAnalysisSteps: Attempting to find login username field on '{}'",
+            ctx.getDriver().getCurrentUrl());
+        try {
+            ctx.getDriver().findElement(By.id("username"));
+            fail("Expected NoSuchElementException -- test should be on the secure page with no login form");
+        } catch (NoSuchElementException e) {
+            log.info("SentinelAnalysisSteps: NoSuchElementException caught -- session cookie bypass simulated");
+        }
+        ctx.syncInsightFromListener();
+        if (ctx.getLastInsight() == null && ctx.getSentinel() != null) {
+            callSentinelForMissingElement("id=username", "username");
+        }
+    }
+
+    @And("the insight should be continuable")
+    public void theInsightShouldBeContinuable() {
+        InsightResponse insight = ctx.getLastInsight();
+        assertThat(insight).isNotNull();
+        assertThat(insight.isContinuable())
+            .as("Insight should be continuable (CONTINUE outcome or NAVIGATED_PAST/STATE_ALREADY_SATISFIED " +
+                "category). Actual: outcome=%s, category=%s",
+                insight.getSuggestedTestOutcome(), insight.getConditionCategory())
+            .isTrue();
+        log.info("SentinelAnalysisSteps: Insight is continuable -- outcome={}, category={}",
+            insight.getSuggestedTestOutcome(), insight.getConditionCategory());
     }
 
     // ════════════════════════════════════════════════════════════════════════

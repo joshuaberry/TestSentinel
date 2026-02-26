@@ -4,6 +4,7 @@ import com.testsentinel.executor.ActionContext;
 import com.testsentinel.executor.ActionHandler;
 import com.testsentinel.executor.ActionResult;
 import com.testsentinel.executor.HandlesAction;
+import com.testsentinel.model.TestOutcome;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,6 +16,11 @@ import org.slf4j.LoggerFactory;
  * automatically at test execution time without any change to registry code.
  *
  * Risk level: LOW -- safe to execute autonomously.
+ *
+ * Demonstrates returning a TestOutcome so TestSentinel knows what to do with
+ * the test after this action completes. Real handlers use this to make runtime
+ * decisions that a static KB pattern cannot anticipate -- for example, returning
+ * CONTINUE when a corrective action succeeds, or FAIL_WITH_CONTEXT when it does not.
  */
 @HandlesAction("DUMMY_ACTION")
 public class DummyActionHandler implements ActionHandler {
@@ -27,6 +33,7 @@ public class DummyActionHandler implements ActionHandler {
             return ActionResult.skipped("DryRun: would run the dummy action");
         }
         log.info("Ran the dummy action");
-        return ActionResult.executed("Dummy action completed");
+        return ActionResult.executed("Dummy action completed")
+                           .withTestOutcome(TestOutcome.CONTINUE);
     }
 }
