@@ -12,6 +12,7 @@ import com.testsentinel.model.KnownCondition;
 import com.testsentinel.model.UnknownConditionRecord;
 import com.testsentinel.prompt.PromptEngine;
 import com.testsentinel.util.ContextCollector;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -127,12 +128,38 @@ public class TestSentinelClient {
             Map<String, String> testMeta
     ) {
         ConditionType conditionType = mapExceptionToConditionType(exception);
+
+        // Before processing a LOCATOR_NOT_FOUND, check if the page is still loading.
+        // An element cannot be found on an incomplete page -- this is a page timeout,
+        // not a missing element.
+        boolean reclassifiedAsTimeout = false;
+        if (conditionType == ConditionType.LOCATOR_NOT_FOUND && driver != null) {
+            String readyState = getPageReadyState(driver);
+            if (!"complete".equalsIgnoreCase(readyState)) {
+                log.warn("TestSentinel: Page not fully loaded (readyState='{}') when element was sought -- " +
+                    "re-classifying NoSuchElementException as TIMEOUT", readyState);
+                log.warn("TestSentinel: Original locator error: {}", exception.getMessage());
+                conditionType = ConditionType.TIMEOUT;
+                reclassifiedAsTimeout = true;
+            }
+        }
+
         log.info("TestSentinel: Analyzing {} condition -- {}", conditionType, exception.getMessage());
 
         ConditionEvent event = contextCollector.collect(driver, conditionType, exception, priorSteps, testMeta);
         InsightResponse insight = analyzeEventCore(event);
         autoExecuteIfApplicable(insight, driver, event);
         insightHistory.add(new InsightRecord(insight, new java.util.ArrayList<>(lastAutoActionResults)));
+
+        if (reclassifiedAsTimeout) {
+            throw new org.openqa.selenium.TimeoutException(
+                "TestSentinel: Page was still loading (readyState not 'complete') when element lookup " +
+                "was attempted at [" + safeGetUrl(driver) + "]. " +
+                "Original error: " + exception.getMessage(),
+                exception
+            );
+        }
+
         return insight;
     }
 
@@ -406,6 +433,22 @@ public class TestSentinelClient {
             case "WebDriverException"             -> ConditionType.EXCEPTION;
             default                               -> ConditionType.EXCEPTION;
         };
+    }
+
+    /**
+     * Returns the browser's document.readyState ("loading", "interactive", or "complete").
+     * Returns "unknown" if the JavaScript call fails.
+     */
+    private String getPageReadyState(WebDriver driver) {
+        try {
+            if (driver instanceof JavascriptExecutor js) {
+                Object state = js.executeScript("return document.readyState");
+                return state != null ? state.toString() : "unknown";
+            }
+        } catch (Exception e) {
+            log.debug("TestSentinel: Could not check page readyState: {}", e.getMessage());
+        }
+        return "unknown";
     }
 
     private String safeGetUrl(WebDriver driver) {

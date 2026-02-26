@@ -115,6 +115,16 @@ public class TestSentinelListener implements WebDriverListener {
             );
             this.lastInsight = insight;
             sentinel.logInsight(insight);
+        } catch (org.openqa.selenium.TimeoutException te) {
+            // analyzeException() detected the page was still loading -- the insight is
+            // already recorded in the client's history, so pick it up and re-throw so
+            // the test fails with TimeoutException instead of NoSuchElementException.
+            List<TestSentinelClient.InsightRecord> history = sentinel.getInsightHistory();
+            if (!history.isEmpty()) {
+                this.lastInsight = history.get(history.size() - 1).insight();
+                sentinel.logInsight(this.lastInsight);
+            }
+            throw te;
         } catch (Exception analysisError) {
             log.error("TestSentinel: Analysis failed: {}", analysisError.getMessage());
         }
