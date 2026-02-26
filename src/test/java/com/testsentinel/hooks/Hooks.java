@@ -14,6 +14,10 @@ import io.cucumber.java.Scenario;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+import java.util.Map;
+import java.util.LinkedHashMap;
+
 /**
  * Per-scenario Cucumber hooks — @Before and @After only.
  *
@@ -84,9 +88,72 @@ public class Hooks {
             );
         }
 
+        // ── Per-scenario insight/action summary ──────────────────────────────
+        List<TestSentinelClient.InsightRecord> history = ctx.getSentinel().getInsightHistory();
+        logScenarioSummary(scenario.getName(), history);
+        SuiteHooks.register(scenario.getName(), history);
+
         DriverFactory.quit(ctx.getDriver());
         log.info("─── Scenario END: {} — {} ───",
             scenario.getName(), scenario.isFailed() ? "FAILED" : "PASSED");
+    }
+
+    private void logScenarioSummary(String scenarioName, List<TestSentinelClient.InsightRecord> history) {
+        if (history.isEmpty()) {
+            log.info("TestSentinel [{}] — no insights tripped", scenarioName);
+            return;
+        }
+
+        // Group by insight key, preserving insertion order
+        Map<String, List<TestSentinelClient.InsightRecord>> grouped = new LinkedHashMap<>();
+        for (var rec : history) {
+            grouped.computeIfAbsent(insightKey(rec.insight()), k -> new java.util.ArrayList<>()).add(rec);
+        }
+
+        log.info("--- TestSentinel Scenario Summary: {} ---", scenarioName);
+        log.info("  Analyses: {}  |  Unique patterns: {}", history.size(), grouped.size());
+        int idx = 0;
+        for (var entry : grouped.entrySet()) {
+            idx++;
+            var recs = entry.getValue();
+            var ins = recs.get(0).insight();
+            String cntSuffix = recs.size() > 1 ? " ×" + recs.size() : "";
+            log.info("  {}. [{}] {} → {}{}", idx, entry.getKey(),
+                ins.getConditionCategory(),
+                ins.getSuggestedTestOutcome() != null ? ins.getSuggestedTestOutcome() : "N/A",
+                cntSuffix);
+
+            // Aggregate actions across all occurrences of this insight
+            Map<String, int[]> actionCounts = new LinkedHashMap<>();
+            for (var rec : recs) {
+                if (!rec.actions().isEmpty() && rec.insight().hasActionPlan()) {
+                    var steps = rec.insight().getActionPlan().getActions();
+                    for (int i = 0; i < rec.actions().size() && i < steps.size(); i++) {
+                        String ak = steps.get(i).getActionType() + " → " + rec.actions().get(i).getOutcome();
+                        actionCounts.computeIfAbsent(ak, k -> new int[]{0})[0]++;
+                    }
+                }
+            }
+            if (actionCounts.isEmpty()) {
+                log.info("     Actions: (none)");
+            } else {
+                for (var ae : actionCounts.entrySet()) {
+                    String acntSuffix = ae.getValue()[0] > 1 ? " ×" + ae.getValue()[0] : "";
+                    log.info("     Action: {}{}", ae.getKey(), acntSuffix);
+                }
+            }
+        }
+        log.info("---------------------------------------------------------------");
+    }
+
+    private String insightKey(InsightResponse insight) {
+        if (insight.isLocalResolution()) {
+            return insight.getResolvedFromPattern() != null
+                ? insight.getResolvedFromPattern() : "LOCAL-UNKNOWN";
+        }
+        return insight.getAnalysisTokens() == 0
+            ? "OFFLINE:" + insight.getConditionCategory()
+            : "API:" + insight.getConditionCategory();
     }
 
     private String buildCucumberAttachment(InsightResponse insight) {

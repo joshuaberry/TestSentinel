@@ -65,6 +65,16 @@ public class TestSentinelClient {
     // Last auto-execution results — useful for test assertions in single-threaded suites
     private volatile List<ActionResult> lastAutoActionResults = Collections.emptyList();
 
+    // Full history of every analysis performed during this client's lifetime.
+    // One entry per public analyzeXxx() call, in call order.
+    private final List<InsightRecord> insightHistory = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+    /**
+     * One entry per analysis call — pairs the produced InsightResponse with the
+     * list of ActionResults that were auto-executed immediately after (may be empty).
+     */
+    public record InsightRecord(InsightResponse insight, List<ActionResult> actions) {}
+
     public TestSentinelClient(TestSentinelConfig config) {
         this(config, null);
     }
@@ -120,11 +130,9 @@ public class TestSentinelClient {
         log.info("TestSentinel: Analyzing {} condition — {}", conditionType, exception.getMessage());
 
         ConditionEvent event = contextCollector.collect(driver, conditionType, exception, priorSteps, testMeta);
-        InsightResponse insight = analyzeEvent(event);
-
-        // Auto-execute LOW-risk KB action plan steps when driver is available
+        InsightResponse insight = analyzeEventCore(event);
         autoExecuteIfApplicable(insight, driver, event);
-
+        insightHistory.add(new InsightRecord(insight, new java.util.ArrayList<>(lastAutoActionResults)));
         return insight;
     }
 
@@ -142,16 +150,14 @@ public class TestSentinelClient {
             expectedUrl, safeGetUrl(driver));
 
         ConditionEvent event = contextCollector.collectWrongPage(driver, expectedUrl, priorSteps, testMeta);
-        InsightResponse insight = analyzeEvent(event);
-
-        // Auto-execute LOW-risk KB action plan steps when driver is available
+        InsightResponse insight = analyzeEventCore(event);
         autoExecuteIfApplicable(insight, driver, event);
-
+        insightHistory.add(new InsightRecord(insight, new java.util.ArrayList<>(lastAutoActionResults)));
         return insight;
     }
 
     /**
-     * Analyzes a pre-built ConditionEvent.
+     * Analyzes a pre-built ConditionEvent (no driver available — no auto-execution).
      *
      * Resolution priority:
      *   1. Local knowledge base match  — sub-millisecond, 0 tokens, confidence 1.0
@@ -159,6 +165,16 @@ public class TestSentinelClient {
      *   3. Claude API call             — only when offlineMode=false and API key is set
      */
     public InsightResponse analyzeEvent(ConditionEvent event) {
+        InsightResponse insight = analyzeEventCore(event);
+        insightHistory.add(new InsightRecord(insight, Collections.emptyList()));
+        return insight;
+    }
+
+    /**
+     * Core resolution logic shared by all three public analyzeXxx() methods.
+     * Does not record to insightHistory — callers do that after actions are resolved.
+     */
+    private InsightResponse analyzeEventCore(ConditionEvent event) {
         // ── Step 1: Local knowledge base ─────────────────────────────────────
         if (knowledgeBase != null) {
             long kbStart = System.currentTimeMillis();
@@ -300,6 +316,9 @@ public class TestSentinelClient {
 
     /** Returns the action results from the most recent auto-execution (single-threaded suites only). */
     public List<ActionResult> getLastAutoActionResults() { return lastAutoActionResults; }
+
+    /** Returns an unmodifiable view of every insight analysis this client has performed, in call order. */
+    public List<InsightRecord> getInsightHistory() { return Collections.unmodifiableList(insightHistory); }
 
     // ── Convenience Logging ───────────────────────────────────────────────────
 
