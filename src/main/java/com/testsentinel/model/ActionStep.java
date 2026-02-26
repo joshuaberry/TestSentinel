@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.Map;
 
 /**
- * A single recommended remediation action returned by Phase 2 analysis.
+ * A single recommended remediation action returned by TestSentinel analysis.
  *
  * ActionSteps are ordered by priority within an ActionPlan -- step[0] should
  * be attempted before step[1], etc. Each step carries a confidence score
@@ -18,8 +18,8 @@ import java.util.Map;
  *
  *   LOW    → Safe to suggest or auto-execute (no data changes, recoverable)
  *   MEDIUM → Suggest to user; require TESTSENTINEL_ALLOW_MEDIUM_RISK=true to auto-execute
- *   HIGH   → Always present as recommendation only; never auto-execute in Phase 2
- *            (Phase 3 adds explicit HIGH-risk opt-in per action type)
+ *   HIGH   → Always present as recommendation only; never auto-executed
+ *            (requires explicit HIGH-risk opt-in per action type)
  *
  * ## Parameters by ActionType
  * Common parameter keys (all optional -- Claude populates what it can infer):
@@ -71,7 +71,7 @@ public class ActionStep {
     private double confidence;            // 0.0 – 1.0: probability this action resolves the condition
     private RiskLevel riskLevel;          // Gating level for autonomous execution
     private String rationale;            // Why Claude recommends this action
-    private boolean requiresVerification; // If true, Phase 3 should verify success before proceeding
+    private boolean requiresVerification; // If true, verify success before proceeding to next step
 
     public ActionStep() {}
 

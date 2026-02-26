@@ -43,7 +43,6 @@ public class ScenarioContext {
 
     // ── Flags ─────────────────────────────────────────────────────────────────
     private boolean apiKeyPresent;
-    private boolean phase2Enabled;
 
     public ScenarioContext() {
         this.apiKeyPresent = isApiKeyPresent();
@@ -76,9 +75,6 @@ public class ScenarioContext {
         String key = System.getenv("ANTHROPIC_API_KEY");
         return key != null && !key.isBlank();
     }
-
-    public boolean isPhase2Enabled()            { return phase2Enabled; }
-    public void    setPhase2Enabled(boolean b)  { this.phase2Enabled = b; }
 
     /**
      * Pulls the latest insight from the listener (auto-interception path) and

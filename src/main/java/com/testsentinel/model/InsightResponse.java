@@ -10,11 +10,11 @@ import java.util.UUID;
 /**
  * The structured output from TestSentinel analysis.
  *
- * Phase 1 fields: root cause, category, confidence, evidence, transient flag, suggested outcome.
- * Phase 2 adds:   actionPlan -- an ordered list of recommended remediation steps with risk levels.
+ * Fields: root cause, category, confidence, evidence, transient flag, suggested outcome,
+ * and an optional actionPlan -- an ordered list of recommended remediation steps with risk levels.
  *
- * The actionPlan field will be null when Phase 1 mode is active and populated
- * when Phase 2 mode is active (controlled by TestSentinelConfig.isPhase2Enabled()).
+ * The actionPlan field is null when the analysis produced no recommended actions
+ * (e.g., CONTINUE outcomes) and populated otherwise.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -32,8 +32,8 @@ public class InsightResponse {
     private Instant analyzedAt;
     private String rawClaudeResponse;    // Preserved for debugging
 
-    // ── Phase 2 Addition ──────────────────────────────────────────────────────
-    private ActionPlan actionPlan;        // Null in Phase 1 mode; populated in Phase 2 mode
+    // ── Action Plan ───────────────────────────────────────────────────────────
+    private ActionPlan actionPlan;        // Null when no remediation steps apply (e.g., CONTINUE)
 
     // ── Continue Context (populated when suggestedTestOutcome = CONTINUE) ─────
     private ContinueContext continueContext;

@@ -15,7 +15,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Executes an {@link ActionPlan} produced by Phase 2 analysis.
+ * Executes an {@link ActionPlan} produced by TestSentinel analysis.
  *
  * ## Execution model
  *

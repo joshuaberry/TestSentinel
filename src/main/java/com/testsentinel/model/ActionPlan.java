@@ -8,9 +8,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * An ordered list of recommended remediation steps produced by Phase 2 analysis.
+ * An ordered list of recommended remediation steps produced by TestSentinel analysis.
  *
- * The ActionPlan is attached to InsightResponse when Phase 2 analysis mode is active.
+ * The ActionPlan is attached to InsightResponse when analysis produces recommended actions.
  * Steps are ordered by recommended execution sequence -- execute step[0] first.
  *
  * ## Usage

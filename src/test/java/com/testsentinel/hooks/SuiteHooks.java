@@ -53,9 +53,8 @@ public class SuiteHooks {
     public static void initSentinel() {
         sharedConfig = SentinelFactory.buildConfig();
         scenarioReports.clear();
-        log.info("SuiteHooks @BeforeAll: TestSentinel config ready -- offline={}, phase2={}, KB={}",
+        log.info("SuiteHooks @BeforeAll: TestSentinel config ready -- offline={}, KB={}",
             sharedConfig.isOfflineMode(),
-            sharedConfig.isPhase2Enabled(),
             sharedConfig.isKnowledgeBaseEnabled() ? sharedConfig.getKnowledgeBasePath() : "disabled");
         log.info("SuiteHooks @BeforeAll: Each scenario gets a fresh TestSentinelClient for KB isolation");
     }

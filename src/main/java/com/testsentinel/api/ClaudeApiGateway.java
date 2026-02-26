@@ -91,11 +91,7 @@ public class ClaudeApiGateway {
         root.put("model", config.getModel());
         root.put("max_tokens", config.getMaxTokens());
 
-        // Use Phase 2 system prompt when phase2 is enabled, Phase 1 otherwise
-        String systemPrompt = config.isPhase2Enabled()
-            ? PromptEngine.SYSTEM_PROMPT_PHASE2
-            : PromptEngine.SYSTEM_PROMPT_PHASE1;
-        root.put("system", systemPrompt);
+        root.put("system", PromptEngine.SYSTEM_PROMPT);
 
         // Messages array
         ArrayNode messages = root.putArray("messages");

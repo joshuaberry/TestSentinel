@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  *   - Opening pages on the-internet.herokuapp.com
  *   - API key guard
  *   - Knowledge base precondition
- *   - Phase 2 enable
  *   - URL expectation storage for navigation scenarios
  *   - Login helper used by navigation scenarios
  */
@@ -83,16 +82,6 @@ public class CommonSteps {
             .as("TestSentinel client must be initialized before KB steps")
             .isNotNull();
         log.info("CommonSteps: KB configured with {} active patterns", sentinel.knowledgeBaseSize());
-    }
-
-    // ── Phase 2 ───────────────────────────────────────────────────────────────
-
-    @Given("Phase 2 is enabled")
-    public void phase2IsEnabled() {
-        // Phase 2 (action plans) is enabled by default via SentinelFactory.buildConfig().
-        // This step just confirms / explicitly sets the flag for scenarios that need it.
-        ctx.setPhase2Enabled(true);
-        log.info("CommonSteps: Phase 2 (action plans) enabled for this scenario");
     }
 
     // ── Navigation URL expectation helpers ────────────────────────────────────

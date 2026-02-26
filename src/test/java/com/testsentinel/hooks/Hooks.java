@@ -49,7 +49,6 @@ public class Hooks {
         ctx.setSentinel(sentinel);
         ctx.setAdvisor(advisor);
         ctx.setConfig(config);
-        ctx.setPhase2Enabled(config.isPhase2Enabled());
 
         // Fresh listener per scenario -- clean step history, correct test name
         TestSentinelListener listener = new TestSentinelListener(

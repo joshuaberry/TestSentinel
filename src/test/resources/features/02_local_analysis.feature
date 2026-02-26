@@ -12,7 +12,7 @@
 #   - LocalResolutionBuilder producing InsightResponse without API
 #   - insight.isLocalResolution() == true
 #   - insight.getResolvedFromPattern() returning the pattern id
-#   - KB pattern with action plan satisfying Phase 2 assertions
+#   - KB pattern with action plan satisfying action plan assertions
 # ─────────────────────────────────────────────────────────────────────────────
 @sentinel @local-analysis
 Feature: TestSentinel Local Analysis — Knowledge Base Resolution
@@ -40,8 +40,8 @@ Feature: TestSentinel Local Analysis — Knowledge Base Resolution
     And the insight tokens used should be 0
     And the insight confidence should equal 1.0
 
-  @local-resolution @phase2
-  Scenario: KB pattern with action plan satisfies Phase 2 action plan assertions
+  @local-resolution
+  Scenario: KB pattern with action plan satisfies action plan assertions
     Given the knowledge base contains the pattern "internet-checkout-btn"
     When the test attempts to click a nonexistent element with id "checkout-submit-btn"
     Then TestSentinel should have produced an insight

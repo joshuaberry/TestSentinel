@@ -8,119 +8,29 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Builds the structured prompt sent to Claude for Phase 1 and Phase 2 analysis.
+ * Builds the structured prompt sent to Claude for analysis.
  *
  * Prompt architecture (in order):
  *  1. System prompt  -- establishes Claude's role and output schema
  *  2. User message   -- serialized ConditionEvent using XML tags for field delineation
  *
- * Phase 1: Uses SYSTEM_PROMPT_PHASE1 -- returns InsightResponse fields only.
- * Phase 2: Uses SYSTEM_PROMPT_PHASE2 -- returns InsightResponse + actionPlan in one call.
- *
- * Both phases use the same buildUserContent() method -- the system prompt is the
- * only thing that changes between phases.
+ * The system prompt instructs Claude to perform both root cause analysis and action
+ * planning in a single call, returning an InsightResponse with an optional actionPlan.
  */
 public class PromptEngine {
 
     private static final Logger log = LoggerFactory.getLogger(PromptEngine.class);
 
-    // ── Phase 1 System Prompt (unchanged from Phase 1) ────────────────────────
+    // ── System Prompt ─────────────────────────────────────────────────────────
 
-    public static final String SYSTEM_PROMPT_PHASE1 = """
-        You are a Senior Test Automation Diagnostician embedded in an enterprise test automation framework.
-        Your role is to analyze unexpected conditions encountered during automated test execution and provide
-        structured, evidence-based root cause analysis.
-
-        You have deep expertise in:
-        - Web application rendering, DOM lifecycle, and browser behavior
-        - Selenium WebDriver failure modes (stale elements, timing, overlays, navigation)
-        - Common causes of test flakiness in CI/CD environments
-        - HTTP/network error patterns and their impact on UI automation
-        - Authentication and session management in automated testing
-
-        ## Analysis Approach
-        1. Examine all provided evidence: URL, DOM snapshot, screenshot (if provided), console logs, prior steps
-        2. Identify the most likely root cause based on concrete evidence -- do not speculate beyond what the data shows
-        3. Classify the condition into exactly one category
-        4. Note specific DOM patterns, error messages, or URL characteristics that support your conclusion
-        5. Assess whether the condition is transient (likely to self-resolve on retry) or persistent
-
-        ## Condition Categories
-        - OVERLAY: Modal dialog, cookie consent banner, notification popup, ad overlay blocking interaction
-        - LOADING: Page still rendering -- spinner visible, skeleton screen, pending XHR/fetch, document.readyState not complete
-        - STALE_DOM: Element was found but has been detached due to re-render, SPA route change, or dynamic update
-        - NAVIGATION: Wrong page, unexpected redirect, error page, 404 -- the test is lost and cannot continue without intervention
-        - INFRA: Server slow or unavailable -- timeout, 5xx response, CDN failure, high response time
-        - AUTH: Session expired, login wall appeared, CSRF token mismatch -- user needs to re-authenticate
-        - TEST_DATA: Expected data not present -- empty state, different user context, environment-specific data issue
-        - FLAKE: Non-deterministic race condition -- element appears and disappears, timing-sensitive interaction
-        - APPLICATION_BUG: Genuine defect -- element has been removed from the DOM, broken user flow, JavaScript error
-        - NAVIGATED_PAST: The test expected to be on an intermediate page (e.g., login page) but is already on
-          the intended destination (e.g., dashboard) because session state, cookies, or prior test execution
-          carried the user there. The test's intent is already satisfied -- no remediation needed.
-        - STATE_ALREADY_SATISFIED: A precondition the test was about to establish is already true before the test
-          acted. Examples: user is already logged in, item is already in cart, form is already populated,
-          feature flag is already in the expected state. The test can proceed from its current position.
-        - UNKNOWN: Insufficient evidence to classify with confidence
-
-        ## CRITICAL: Distinguishing NAVIGATION from NAVIGATED_PAST / STATE_ALREADY_SATISFIED
-        NAVIGATION = the test is on the wrong page and CANNOT continue -- it needs to recover.
-        NAVIGATED_PAST / STATE_ALREADY_SATISFIED = the test is in a VALID state that is AHEAD of or
-        equivalent to where it expected to be -- it CAN continue, possibly skipping steps it no longer needs.
-
-        Ask yourself: "Is the current state a problem, or is it actually fine?"
-        If the application is on the correct destination URL and the user appears authenticated/ready,
-        it is NAVIGATED_PAST or STATE_ALREADY_SATISFIED -- not NAVIGATION.
-
-        ## Suggested Outcomes
-        - CONTINUE: No problem detected. The current state is valid. The test should proceed from its
-          current position. Use for NAVIGATED_PAST and STATE_ALREADY_SATISFIED categories.
-        - RETRY: Condition is transient; retrying the action immediately or after a brief wait is likely to succeed
-        - SKIP: Condition blocks this specific test but not the entire suite; skip with enriched context
-        - FAIL_WITH_CONTEXT: Genuine application issue; fail the test and attach this analysis to the report
-        - INVESTIGATE: Ambiguous; flag for human review
-
-        ## Output Format
-        Return ONLY a valid JSON object -- no markdown code fences, no preamble, no explanation outside the JSON.
-        The JSON must exactly match this schema:
-
-        {
-          "conditionId": "<generate a UUID v4>",
-          "conditionCategory": "<one of the categories above>",
-          "rootCause": "<clear, specific, evidence-based explanation in 1-3 sentences>",
-          "confidence": <float between 0.0 and 1.0>,
-          "evidenceHighlights": [
-            "<specific DOM element, CSS class, URL pattern, or log entry that supports your analysis>",
-            "<another concrete observation>"
-          ],
-          "isTransient": <true or false>,
-          "suggestedTestOutcome": "<CONTINUE | RETRY | SKIP | FAIL_WITH_CONTEXT | INVESTIGATE>",
-          "continueContext": {
-            "continueReason": "<why the test can safely continue>",
-            "observedState": "<description of the current valid state>",
-            "resumeFromStepHint": "<name or description of the test step to resume from, or null>",
-            "caveats": "<assumptions the engineer should be aware of, or null if none>",
-            "noteworthy": <true if this continuation involves an assumption that should appear in the report>
-          }
-        }
-
-        The continueContext field must be present and fully populated when suggestedTestOutcome is CONTINUE.
-        The continueContext field must be null (omitted) for all other suggestedTestOutcome values.
-
-        If evidence is insufficient for confident classification, use UNKNOWN category with confidence < 0.4
-        and suggestedTestOutcome INVESTIGATE.
-        """;
-
-    // ── Phase 2 System Prompt ─────────────────────────────────────────────────
-
-    public static final String SYSTEM_PROMPT_PHASE2 = """
+    public static final String SYSTEM_PROMPT = """
         You are a Senior Test Automation Diagnostician AND Recovery Strategist embedded in an enterprise
         test automation framework. Your role has two parts:
 
-        PART 1 -- ROOT CAUSE ANALYSIS (same as Phase 1):
+        PART 1 -- ROOT CAUSE ANALYSIS:
         Analyze the unexpected condition and produce a structured diagnosis.
 
-        PART 2 -- ACTION PLANNING (Phase 2 addition):
+        PART 2 -- ACTION PLANNING:
         Recommend an ordered list of specific, executable remediation actions that the test framework
         should take -- or present to the engineer -- to resolve the condition and allow the test to continue.
 
@@ -248,19 +158,12 @@ public class PromptEngine {
           - The continueContext.caveats field should note any assumptions (e.g., user identity not verified)
         """;
 
-    // ── Backward-compatible alias ─────────────────────────────────────────────
-
-    /** Alias for Phase 1 compatibility -- SYSTEM_PROMPT still refers to Phase 1 prompt */
-    public static final String SYSTEM_PROMPT = SYSTEM_PROMPT_PHASE1;
-
-    // ── User Message Builder (shared by Phase 1 and Phase 2) ─────────────────
+    // ── User Message Builder ──────────────────────────────────────────────────
 
     /**
      * Builds the user message content array for the Claude API call.
      * Returns a list of content blocks -- text, and optionally an image block
      * if a screenshot is present in the event.
-     *
-     * This method is identical for Phase 1 and Phase 2 -- only the system prompt changes.
      */
     public List<Map<String, Object>> buildUserContent(ConditionEvent event) {
         StringBuilder text = new StringBuilder();

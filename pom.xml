@@ -197,7 +197,6 @@
                     <systemPropertyVariables>
                         <ANTHROPIC_API_KEY>${env.ANTHROPIC_API_KEY}</ANTHROPIC_API_KEY>
                         <headless>${headless}</headless>
-                        <phase2.enabled>${phase2.enabled}</phase2.enabled>
                         <kb.path>${kb.path}</kb.path>
                         <cucumber.filter.tags>${cucumber.filter.tags}</cucumber.filter.tags>
                     </systemPropertyVariables>

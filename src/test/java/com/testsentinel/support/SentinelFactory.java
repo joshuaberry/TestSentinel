@@ -23,7 +23,6 @@ import java.nio.file.Paths;
  *   TESTSENTINEL_KNOWLEDGE_BASE_PATH -- optional; path to known-conditions.json
  *   TESTSENTINEL_UNKNOWN_LOG_PATH    -- path for unknown condition records (default: target/unknown-conditions-log.json)
  *   ANTHROPIC_API_KEY                -- required only when TESTSENTINEL_OFFLINE_MODE=false
- *   TESTSENTINEL_PHASE2_ENABLED      -- "true" to enable action plans (default: true)
  *   TESTSENTINEL_MAX_RISK_LEVEL      -- LOW | MEDIUM | HIGH (default: LOW)
  *
  * ## System Properties (can also be set in Maven Surefire config)
@@ -54,8 +53,8 @@ public class SentinelFactory {
             log.info("SentinelFactory: Unknown condition recorder at {}", config.getUnknownConditionLogPath());
         }
         TestSentinelClient client = new TestSentinelClient(config, recorder);
-        log.info("SentinelFactory: Client created -- offline={}, KB={} patterns, phase2={}",
-            config.isOfflineMode(), client.knowledgeBaseSize(), config.isPhase2Enabled());
+        log.info("SentinelFactory: Client created -- offline={}, KB={} patterns",
+            config.isOfflineMode(), client.knowledgeBaseSize());
         return client;
     }
 
@@ -67,13 +66,11 @@ public class SentinelFactory {
         boolean offlineMode = resolveOfflineMode();
         String  apiKey      = resolveApiKey(offlineMode);
         Path    kbPath      = resolveKbPath();
-        boolean phase2      = resolvePhase2();
         Path    unknownLog  = resolveUnknownLogPath(offlineMode);
 
         TestSentinelConfig.Builder builder = TestSentinelConfig.builder()
             .apiKey(apiKey)
             .offlineMode(offlineMode)
-            .phase2Enabled(phase2)
             .maxRiskLevel(ActionStep.RiskLevel.LOW)
             .captureDOM(true)
             .captureScreenshot(false)
@@ -130,16 +127,6 @@ public class SentinelFactory {
         }
 
         return null;
-    }
-
-    private static boolean resolvePhase2() {
-        String fromProp = System.getProperty("phase2.enabled");
-        if (fromProp != null) return "true".equalsIgnoreCase(fromProp);
-
-        String fromEnv = System.getenv("TESTSENTINEL_PHASE2_ENABLED");
-        if (fromEnv != null) return "true".equalsIgnoreCase(fromEnv);
-
-        return true; // default on
     }
 
     private static Path resolveUnknownLogPath(boolean offlineMode) {

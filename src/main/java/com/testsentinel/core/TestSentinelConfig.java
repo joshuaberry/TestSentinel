@@ -20,7 +20,6 @@ import java.nio.file.Paths;
  *   TESTSENTINEL_CAPTURE_DOM       - Whether to capture DOM snapshots (default: true)
  *   TESTSENTINEL_CAPTURE_SCREENSHOT - Whether to capture screenshots (default: true)
  *   TESTSENTINEL_DOM_MAX_CHARS     - Max DOM snapshot length (default: 15000 chars)
- *   TESTSENTINEL_PHASE2_ENABLED    - Enable Phase 2 action plan generation (default: true)
  *   TESTSENTINEL_MAX_RISK_LEVEL    - Max risk level for auto-execution: LOW|MEDIUM|HIGH (default: LOW)
  *   TESTSENTINEL_KNOWLEDGE_BASE_PATH - Path to known-conditions.json (optional; omit to disable local resolution)
  */
@@ -42,7 +41,6 @@ public class TestSentinelConfig {
     private final boolean apiEnabled;      // Controls Claude API calls
     private final boolean offlineMode;    // When true, API is never called; unknown conditions are recorded
     private final boolean logPrompts;     // Log full prompts to SLF4J DEBUG for debugging
-    private final boolean phase2Enabled;  // Enable Phase 2 action plan generation
     private final ActionStep.RiskLevel maxRiskLevel;
     private final Path knowledgeBasePath;
     private final Path unknownConditionLogPath; // Where to write unknown condition records; null = disabled
@@ -58,7 +56,6 @@ public class TestSentinelConfig {
         this.offlineMode             = b.offlineMode;
         this.apiEnabled              = b.offlineMode ? false : b.apiEnabled;
         this.logPrompts              = b.logPrompts;
-        this.phase2Enabled           = b.phase2Enabled;
         this.maxRiskLevel            = b.maxRiskLevel;
         this.knowledgeBasePath       = b.knowledgeBasePath;
         this.unknownConditionLogPath = b.unknownConditionLogPath;
@@ -91,7 +88,6 @@ public class TestSentinelConfig {
             .domMaxChars(intEnvOrDefault("TESTSENTINEL_DOM_MAX_CHARS", DEFAULT_DOM_MAX_CHARS))
             .apiEnabled(!offlineMode && boolEnvOrDefault("TESTSENTINEL_ENABLED", true))
             .logPrompts(boolEnvOrDefault("TESTSENTINEL_LOG_PROMPTS", false))
-            .phase2Enabled(boolEnvOrDefault("TESTSENTINEL_PHASE2_ENABLED", true))
             .maxRiskLevel(riskLevelEnvOrDefault("TESTSENTINEL_MAX_RISK_LEVEL", ActionStep.RiskLevel.LOW))
             .knowledgeBasePath(pathEnvOrNull("TESTSENTINEL_KNOWLEDGE_BASE_PATH"))
             .unknownConditionLogPath(pathEnvOrDefault("TESTSENTINEL_UNKNOWN_LOG_PATH",
@@ -111,7 +107,6 @@ public class TestSentinelConfig {
     public boolean isApiEnabled()                     { return apiEnabled; }
     public boolean isOfflineMode()                    { return offlineMode; }
     public boolean isLogPrompts()                     { return logPrompts; }
-    public boolean isPhase2Enabled()                  { return phase2Enabled; }
     public ActionStep.RiskLevel getMaxRiskLevel()     { return maxRiskLevel; }
     public Path getKnowledgeBasePath()                { return knowledgeBasePath; }
     public boolean isKnowledgeBaseEnabled()           { return knowledgeBasePath != null; }
@@ -133,7 +128,6 @@ public class TestSentinelConfig {
         private boolean apiEnabled = false;
         private boolean offlineMode = true;
         private boolean logPrompts = false;
-        private boolean phase2Enabled = true;
         private ActionStep.RiskLevel maxRiskLevel = ActionStep.RiskLevel.LOW;
         private Path knowledgeBasePath = null;
         private Path unknownConditionLogPath = DEFAULT_UNKNOWN_LOG_PATH;
@@ -148,7 +142,6 @@ public class TestSentinelConfig {
         public Builder apiEnabled(boolean b)                              { this.apiEnabled = b; return this; }
         public Builder offlineMode(boolean b)                             { this.offlineMode = b; return this; }
         public Builder logPrompts(boolean b)                              { this.logPrompts = b; return this; }
-        public Builder phase2Enabled(boolean b)                           { this.phase2Enabled = b; return this; }
         public Builder maxRiskLevel(ActionStep.RiskLevel level)           { this.maxRiskLevel = level; return this; }
         public Builder knowledgeBasePath(Path path)                       { this.knowledgeBasePath = path; return this; }
         public Builder unknownConditionLogPath(Path path)                 { this.unknownConditionLogPath = path; return this; }
