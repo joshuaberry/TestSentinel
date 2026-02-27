@@ -1,6 +1,7 @@
 package com.testsentinel.steps;
 
 import com.testsentinel.context.ScenarioContext;
+import com.testsentinel.interceptor.SentinelStepSkipException;
 import com.testsentinel.model.ActionStep;
 import com.testsentinel.model.ConditionEvent;
 import com.testsentinel.model.ConditionType;
@@ -26,7 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 /**
- * Step definitions for Features 02, 03, 04, 05, 06, and 07.
+ * Step definitions for Features 02, 03, 04, 05, 06, 07, and 08.
  *
  *   02 -- Local KB analysis (missing elements, zero tokens)
  *   03 -- Knowledge base management (pre-loaded, direct-add, reuse)
@@ -34,6 +35,7 @@ import static org.assertj.core.api.Assertions.fail;
  *   05 -- Unknown condition recording
  *   06 -- Autonomous action execution
  *   07 -- Session cookie bypass detection (CONTINUE outcome via LOCATOR_NOT_FOUND on /secure)
+ *   08 -- Step-level skip propagation via SentinelStepSkipException
  */
 public class SentinelAnalysisSteps {
 
@@ -526,6 +528,49 @@ public class SentinelAnalysisSteps {
             .as("At least one record should have status '%s'", expectedStatus)
             .isTrue();
         log.info("SentinelAnalysisSteps: Record with status '{}' confirmed", expectedStatus);
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Feature 08 -- Step-Level Skip Propagation
+    // ════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Demonstrates step-level skip propagation.
+     *
+     * All three login operations live inside one try block. When the browser is already
+     * on /secure (session-cookie bypass), findElement(#username) throws
+     * NoSuchElementException. Java exception propagation immediately exits the try block
+     * — findElement(#password) and click(button) never execute. The catch checks whether
+     * TestSentinel flagged this as CONTINUE; if so, the step passes.
+     *
+     * The same mechanism works when calling a page object (e.g. page.login()) that
+     * contains multiple driver calls internally — the exception propagates through the
+     * page object to this catch block, skipping everything after the failing call.
+     */
+    @When("the test performs the complete login workflow for {string} with password {string}")
+    public void theTestPerformsTheCompleteLoginWorkflow(String username, String password) {
+        try {
+            // All three operations in a single try block.
+            // On /secure: findElement(#username) throws NoSuchElementException and
+            // immediately exits the try — findElement(#password) and click(button) never run.
+            ctx.getDriver().findElement(By.id("username")).sendKeys(username);
+            ctx.getDriver().findElement(By.id("password")).sendKeys(password);
+            ctx.getDriver().findElement(By.cssSelector("button[type='submit']")).click();
+            log.info("SentinelAnalysisSteps: Login workflow completed normally (no bypass detected)");
+        } catch (NoSuchElementException e) {
+            // The listener analyzed the exception before it reached here.
+            ctx.syncInsightFromListener();
+            InsightResponse insight = ctx.getLastInsight();
+            if (insight != null && insight.isContinuable()) {
+                log.info("SentinelAnalysisSteps: Login workflow skipped at Gherkin step level — {}",
+                    insight.getRootCause());
+                // Step PASSES — the user is already authenticated, login was unnecessary.
+                // Optionally throw SentinelStepSkipException.from(insight, e) here if
+                // surrounding framework code needs to distinguish a skip from a pass.
+            } else {
+                throw e; // genuine NoSuchElementException -- not a bypass
+            }
+        }
     }
 
     // ════════════════════════════════════════════════════════════════════════

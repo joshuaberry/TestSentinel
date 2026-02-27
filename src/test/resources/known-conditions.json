@@ -17,16 +17,14 @@
       "riskLevel" : "LOW",
       "rationale" : "The-internet only supports form-based authentication",
       "requiresVerification" : false,
-      "lowRisk" : true,
-      "highRisk" : false,
+      "highConfidence" : true,
       "mediumRisk" : false,
-      "highConfidence" : true
+      "highRisk" : false,
+      "lowRisk" : true
     } ],
     "planSummary" : "Remove the SSO login step and use the standard username/password form instead",
     "planConfidence" : 0.95,
     "requiresHuman" : false,
-    "mediumRiskActions" : [ ],
-    "highRiskActions" : [ ],
     "lowRiskActions" : [ {
       "actionType" : "SKIP_STEP",
       "description" : "Skip the SSO login attempt — this page does not support SSO",
@@ -34,14 +32,16 @@
       "riskLevel" : "LOW",
       "rationale" : "The-internet only supports form-based authentication",
       "requiresVerification" : false,
-      "lowRisk" : true,
-      "highRisk" : false,
+      "highConfidence" : true,
       "mediumRisk" : false,
-      "highConfidence" : true
-    } ]
+      "highRisk" : false,
+      "lowRisk" : true
+    } ],
+    "mediumRiskActions" : [ ],
+    "highRiskActions" : [ ]
   },
-  "hitCount" : 42,
-  "lastHit" : "2026-02-26T22:33:03.768182800Z",
+  "hitCount" : 44,
+  "lastHit" : "2026-02-27T15:41:43.199470400Z",
   "addedBy" : "seed-data",
   "addedAt" : "2026-02-20T00:00:00Z",
   "transient" : false
@@ -57,8 +57,8 @@
   "rootCause" : "The element 'phantom-button' does not exist on the login page. This is a test-only element — the login page only contains username, password, and login button elements.",
   "evidenceHighlights" : [ "Element id 'phantom-button' is absent from the DOM", "Login page only contains standard form authentication elements" ],
   "suggestedTestOutcome" : "FAIL_WITH_CONTEXT",
-  "hitCount" : 16,
-  "lastHit" : "2026-02-26T22:32:52.716392800Z",
+  "hitCount" : 17,
+  "lastHit" : "2026-02-27T15:41:32.889981600Z",
   "addedBy" : "seed-data",
   "addedAt" : "2026-02-25T00:00:00Z",
   "transient" : false
@@ -74,8 +74,8 @@
   "rootCause" : "The CSS selector '.nonexistent-submit-button' does not match any element on the login page. The submit button uses a different CSS class — check the selector in your test.",
   "evidenceHighlights" : [ "No element matches selector '.nonexistent-submit-button'", "The login form submit button has a different selector" ],
   "suggestedTestOutcome" : "FAIL_WITH_CONTEXT",
-  "hitCount" : 18,
-  "lastHit" : "2026-02-26T22:32:54.897557600Z",
+  "hitCount" : 19,
+  "lastHit" : "2026-02-27T15:41:34.727133600Z",
   "addedBy" : "seed-data",
   "addedAt" : "2026-02-25T00:00:00Z",
   "transient" : false
@@ -99,10 +99,10 @@
       "riskLevel" : "LOW",
       "rationale" : "Document the page state showing the mismatch between expected checkout page and actual login page",
       "requiresVerification" : false,
-      "lowRisk" : true,
-      "highRisk" : false,
+      "highConfidence" : true,
       "mediumRisk" : false,
-      "highConfidence" : true
+      "highRisk" : false,
+      "lowRisk" : true
     }, {
       "actionType" : "SKIP_TEST",
       "description" : "Skip test — checkout functionality is not available on the login page",
@@ -110,27 +110,14 @@
       "riskLevel" : "MEDIUM",
       "rationale" : "The test cannot reach the checkout element from the login page without completing authentication first",
       "requiresVerification" : false,
-      "lowRisk" : false,
-      "highRisk" : false,
+      "highConfidence" : true,
       "mediumRisk" : true,
-      "highConfidence" : true
+      "highRisk" : false,
+      "lowRisk" : false
     } ],
     "planSummary" : "Capture diagnostic screenshot then skip — checkout context unavailable on login page",
     "planConfidence" : 0.88,
     "requiresHuman" : false,
-    "mediumRiskActions" : [ {
-      "actionType" : "SKIP_TEST",
-      "description" : "Skip test — checkout functionality is not available on the login page",
-      "confidence" : 0.85,
-      "riskLevel" : "MEDIUM",
-      "rationale" : "The test cannot reach the checkout element from the login page without completing authentication first",
-      "requiresVerification" : false,
-      "lowRisk" : false,
-      "highRisk" : false,
-      "mediumRisk" : true,
-      "highConfidence" : true
-    } ],
-    "highRiskActions" : [ ],
     "lowRiskActions" : [ {
       "actionType" : "CAPTURE_SCREENSHOT",
       "description" : "Capture diagnostic screenshot to document the unexpected page state",
@@ -138,14 +125,27 @@
       "riskLevel" : "LOW",
       "rationale" : "Document the page state showing the mismatch between expected checkout page and actual login page",
       "requiresVerification" : false,
-      "lowRisk" : true,
-      "highRisk" : false,
+      "highConfidence" : true,
       "mediumRisk" : false,
-      "highConfidence" : true
-    } ]
+      "highRisk" : false,
+      "lowRisk" : true
+    } ],
+    "mediumRiskActions" : [ {
+      "actionType" : "SKIP_TEST",
+      "description" : "Skip test — checkout functionality is not available on the login page",
+      "confidence" : 0.85,
+      "riskLevel" : "MEDIUM",
+      "rationale" : "The test cannot reach the checkout element from the login page without completing authentication first",
+      "requiresVerification" : false,
+      "highConfidence" : true,
+      "mediumRisk" : true,
+      "highRisk" : false,
+      "lowRisk" : false
+    } ],
+    "highRiskActions" : [ ]
   },
-  "hitCount" : 32,
-  "lastHit" : "2026-02-26T22:33:25.101490500Z",
+  "hitCount" : 34,
+  "lastHit" : "2026-02-27T15:42:05.072108Z",
   "addedBy" : "seed-data",
   "addedAt" : "2026-02-25T00:00:00Z",
   "transient" : false
@@ -161,8 +161,8 @@
   "rootCause" : "The element '#cookie-consent-accept' does not exist on the checkboxes page. The-internet does not implement a cookie consent banner — no GDPR overlay is present on this site.",
   "evidenceHighlights" : [ "No cookie consent banner in DOM", "The-internet is a practice site without GDPR implementation" ],
   "suggestedTestOutcome" : "FAIL_WITH_CONTEXT",
-  "hitCount" : 18,
-  "lastHit" : "2026-02-26T22:32:59.060773800Z",
+  "hitCount" : 19,
+  "lastHit" : "2026-02-27T15:41:39.066526500Z",
   "addedBy" : "seed-data",
   "addedAt" : "2026-02-25T00:00:00Z",
   "transient" : false
@@ -178,8 +178,8 @@
   "rootCause" : "The browser is on the login page but the test expected to be on the secure page. The authentication step has not been completed — the test needs to log in first.",
   "evidenceHighlights" : [ "Current URL contains /login", "Expected URL contains /secure", "Authentication has not completed" ],
   "suggestedTestOutcome" : "FAIL_WITH_CONTEXT",
-  "hitCount" : 18,
-  "lastHit" : "2026-02-26T22:33:09.872397300Z",
+  "hitCount" : 19,
+  "lastHit" : "2026-02-27T15:41:49.471692200Z",
   "addedBy" : "seed-data",
   "addedAt" : "2026-02-25T00:00:00Z",
   "transient" : false
@@ -202,8 +202,8 @@
     "caveats" : "Ensure test data state is consistent with being already authenticated",
     "noteworthy" : true
   },
-  "hitCount" : 36,
-  "lastHit" : "2026-02-26T22:33:17.309649400Z",
+  "hitCount" : 38,
+  "lastHit" : "2026-02-27T15:41:57.028625Z",
   "addedBy" : "seed-data",
   "addedAt" : "2026-02-25T00:00:00Z",
   "transient" : false
@@ -226,16 +226,14 @@
       "riskLevel" : "LOW",
       "rationale" : "Document the page state for diagnostic purposes",
       "requiresVerification" : false,
-      "lowRisk" : true,
-      "highRisk" : false,
+      "highConfidence" : true,
       "mediumRisk" : false,
-      "highConfidence" : true
+      "highRisk" : false,
+      "lowRisk" : true
     } ],
     "planSummary" : "Capture diagnostic screenshot for autonomous action test validation",
     "planConfidence" : 0.95,
     "requiresHuman" : false,
-    "mediumRiskActions" : [ ],
-    "highRiskActions" : [ ],
     "lowRiskActions" : [ {
       "actionType" : "CAPTURE_SCREENSHOT",
       "description" : "Capture diagnostic screenshot when autonomous-action-test-element is not found",
@@ -243,14 +241,16 @@
       "riskLevel" : "LOW",
       "rationale" : "Document the page state for diagnostic purposes",
       "requiresVerification" : false,
-      "lowRisk" : true,
-      "highRisk" : false,
+      "highConfidence" : true,
       "mediumRisk" : false,
-      "highConfidence" : true
-    } ]
+      "highRisk" : false,
+      "lowRisk" : true
+    } ],
+    "mediumRiskActions" : [ ],
+    "highRiskActions" : [ ]
   },
-  "hitCount" : 18,
-  "lastHit" : "2026-02-26T22:33:23.092402300Z",
+  "hitCount" : 19,
+  "lastHit" : "2026-02-27T15:42:02.844067300Z",
   "addedBy" : "seed-data",
   "addedAt" : "2026-02-25T00:00:00Z",
   "transient" : false
@@ -273,16 +273,14 @@
       "riskLevel" : "LOW",
       "rationale" : "Demonstrates a custom LOW-risk handler that can be triggered from the knowledge base",
       "requiresVerification" : false,
-      "lowRisk" : true,
-      "highRisk" : false,
+      "highConfidence" : true,
       "mediumRisk" : false,
-      "highConfidence" : true
+      "highRisk" : false,
+      "lowRisk" : true
     } ],
     "planSummary" : "Run the dummy action handler",
     "planConfidence" : 0.95,
     "requiresHuman" : false,
-    "mediumRiskActions" : [ ],
-    "highRiskActions" : [ ],
     "lowRiskActions" : [ {
       "actionType" : "DUMMY_ACTION",
       "description" : "Execute the dummy action as a corrective response",
@@ -290,11 +288,13 @@
       "riskLevel" : "LOW",
       "rationale" : "Demonstrates a custom LOW-risk handler that can be triggered from the knowledge base",
       "requiresVerification" : false,
-      "lowRisk" : true,
-      "highRisk" : false,
+      "highConfidence" : true,
       "mediumRisk" : false,
-      "highConfidence" : true
-    } ]
+      "highRisk" : false,
+      "lowRisk" : true
+    } ],
+    "mediumRiskActions" : [ ],
+    "highRiskActions" : [ ]
   },
   "hitCount" : 0,
   "addedBy" : "seed-data",
@@ -320,16 +320,14 @@
       "riskLevel" : "LOW",
       "rationale" : "The browser is already on the secure page. Filling in the login form is unnecessary and would fail. Skipping these steps lets the test continue from its current authenticated state.",
       "requiresVerification" : false,
-      "lowRisk" : true,
-      "highRisk" : false,
+      "highConfidence" : true,
       "mediumRisk" : false,
-      "highConfidence" : true
+      "highRisk" : false,
+      "lowRisk" : true
     } ],
     "planSummary" : "Skip login form — session cookie bypass detected, user already authenticated",
     "planConfidence" : 0.97,
     "requiresHuman" : false,
-    "mediumRiskActions" : [ ],
-    "highRiskActions" : [ ],
     "lowRiskActions" : [ {
       "actionType" : "SKIP_STEP",
       "description" : "Skip the login form steps — the session cookie has already authenticated the user",
@@ -337,11 +335,13 @@
       "riskLevel" : "LOW",
       "rationale" : "The browser is already on the secure page. Filling in the login form is unnecessary and would fail. Skipping these steps lets the test continue from its current authenticated state.",
       "requiresVerification" : false,
-      "lowRisk" : true,
-      "highRisk" : false,
+      "highConfidence" : true,
       "mediumRisk" : false,
-      "highConfidence" : true
-    } ]
+      "highRisk" : false,
+      "lowRisk" : true
+    } ],
+    "mediumRiskActions" : [ ],
+    "highRiskActions" : [ ]
   },
   "continueContext" : {
     "continueReason" : "The user is already authenticated via a session cookie — the login step was bypassed automatically",
@@ -350,8 +350,8 @@
     "caveats" : "Verify that the authenticated user matches the expected test user before continuing",
     "noteworthy" : true
   },
-  "hitCount" : 9,
-  "lastHit" : "2026-02-26T22:33:32.816309900Z",
+  "hitCount" : 16,
+  "lastHit" : "2026-02-27T15:42:14.890842Z",
   "addedBy" : "seed-data",
   "addedAt" : "2026-02-26T00:00:00Z",
   "transient" : false
@@ -368,7 +368,7 @@
   "suggestedTestOutcome" : "FAIL_WITH_CONTEXT",
   "hitCount" : 0,
   "addedBy" : "cucumber-scenario",
-  "addedAt" : "2026-02-26T22:33:05.744533200Z",
+  "addedAt" : "2026-02-27T15:41:45.160225900Z",
   "transient" : false
 }, {
   "id" : "internet-direct-reuse-test",
@@ -382,8 +382,8 @@
   "rootCause" : "Element '#direct-reuse-sentinel-test' does not exist on this page.",
   "suggestedTestOutcome" : "FAIL_WITH_CONTEXT",
   "hitCount" : 1,
-  "lastHit" : "2026-02-26T22:33:07.584088800Z",
+  "lastHit" : "2026-02-27T15:41:47.149902400Z",
   "addedBy" : "cucumber-scenario",
-  "addedAt" : "2026-02-26T22:33:07.524250300Z",
+  "addedAt" : "2026-02-27T15:41:47.085078400Z",
   "transient" : false
 } ]
